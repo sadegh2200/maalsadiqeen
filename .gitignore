@@ -11,3 +11,6 @@ reel-work/studio/out/
 # Local Remotion studio: a disposable copy of assets/remotion-template
 # (regenerate with scripts/setup_studio.py --dest reel-work/studio)
 reel-work/studio/
+
+# Delivery archive (uploaded to Drive; rebuilt on demand from reel-deliver/)
+/maalsadiqeen-reel-sifat-shiat-sadiq.zip
