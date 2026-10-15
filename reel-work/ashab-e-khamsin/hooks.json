@@ -1,0 +1,40 @@
+[
+  {
+    "hook": "هَلْ تَرَى سَنَدَ أَبِي بَصِيرٍ عَلَى شَرْطِ الصِّحَّةِ؟",
+    "words": 8,
+    "score": 84,
+    "grade": "A",
+    "notes": [
+      "curiosity opener",
+      "question form",
+      "stakes present",
+      "addresses the viewer",
+      "religious specificity"
+    ]
+  },
+  {
+    "hook": "هَلْ تَكْفِي إِحْدَى وَخَمْسُونَ رَكْعَةً وَحْدَهَا؟",
+    "words": 6,
+    "score": 70,
+    "grade": "B",
+    "notes": [
+      "curiosity opener",
+      "question form",
+      "addresses the viewer",
+      "concrete number",
+      "challenges an assumption"
+    ]
+  },
+  {
+    "hook": "هَلْ تَعْرِفُ صِفَاتَ شِيعَةِ الإِمَامِ الصَّادِقِ؟",
+    "words": 6,
+    "score": 69,
+    "grade": "B",
+    "notes": [
+      "curiosity opener",
+      "question form",
+      "addresses the viewer",
+      "religious specificity"
+    ]
+  }
+]

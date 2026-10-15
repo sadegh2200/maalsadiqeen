@@ -1,0 +1,13 @@
+# Build/dev artifacts (regenerated on every machine; never part of a delivery)
+__pycache__/
+*.pyc
+node_modules/
+.venv/
+venv/
+reel-work/studio/out/
+.remotion/
+*.log
+
+# Local Remotion studio: a disposable copy of assets/remotion-template
+# (regenerate with scripts/setup_studio.py --dest reel-work/studio)
+reel-work/studio/

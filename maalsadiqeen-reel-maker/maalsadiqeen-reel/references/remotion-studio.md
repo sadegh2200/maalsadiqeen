@@ -27,6 +27,8 @@ cards (images) ──vision──▶ content.json ──validate──▶ 3 hook
 ```bash
 source "$SKILL_DIR/scripts/env.sh"                                   # exports SKILL_DIR, REEL_WORK, REEL_DELIVER
 python3 "$SKILL_DIR/scripts/setup_studio.py" --dest ~/reel-studio    # copies assets/remotion-template, npm install (remotion 4.0.535), Chrome, audio, tsc
+#   locked-down machine (Chrome download blocked)? give Remotion your own headless shell:
+#   see scripts/chrome-bridge.sh and the matching row in references/troubleshooting.md
 #   reuse an existing install:  --link-node-modules /path/to/node_modules      skip steps: --skip-install --skip-browser
 pip install -q imageio-ffmpeg opencv-python-headless numpy            # loudness probe · contact sheet · brand extraction
 ```

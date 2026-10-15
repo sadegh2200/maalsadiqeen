@@ -1,0 +1,166 @@
+{
+  "fps": 30,
+  "total": 1104,
+  "pace": 1.12,
+  "order": [
+    "hook",
+    "hadith",
+    "bayan",
+    "sanad",
+    "cta"
+  ],
+  "scenes": {
+    "hook": {
+      "dur": 126,
+      "size": 89,
+      "sub_at": 38,
+      "from": 0
+    },
+    "hadith": {
+      "dur": 384,
+      "body": 68,
+      "lead": 112,
+      "warning": 61,
+      "intro": 44,
+      "pages": [
+        {
+          "from": 0,
+          "dur": 384,
+          "intro_at": 22,
+          "top": 636,
+          "lines": [
+            {
+              "i": 0,
+              "at": 82
+            },
+            {
+              "i": 1,
+              "at": 168
+            },
+            {
+              "i": 2,
+              "at": 227
+            },
+            {
+              "i": 3,
+              "at": 286
+            }
+          ]
+        }
+      ],
+      "from": 121
+    },
+    "bayan": {
+      "dur": 241,
+      "size": 54,
+      "top": 700,
+      "lines_at": [
+        10,
+        84
+      ],
+      "stagger": 16,
+      "from": 500
+    },
+    "sanad": {
+      "dur": 165,
+      "start": 30,
+      "step": 0,
+      "seal_at": 24,
+      "row": 112,
+      "name": 40,
+      "chip": 28,
+      "from": 736
+    },
+    "cta": {
+      "dur": 208,
+      "from": 896
+    }
+  },
+  "sfx": [
+    {
+      "at": 0,
+      "src": "boom",
+      "vol": 0.7
+    },
+    {
+      "at": 3,
+      "src": "whoosh",
+      "vol": 0.35
+    },
+    {
+      "at": 121,
+      "src": "page-turn",
+      "vol": 0.4
+    },
+    {
+      "at": 203,
+      "src": "whoosh",
+      "vol": 0.3
+    },
+    {
+      "at": 289,
+      "src": "tick",
+      "vol": 0.7
+    },
+    {
+      "at": 348,
+      "src": "tick",
+      "vol": 0.7
+    },
+    {
+      "at": 407,
+      "src": "tick",
+      "vol": 0.7
+    },
+    {
+      "at": 516,
+      "src": "page-turn",
+      "vol": 0.4
+    },
+    {
+      "at": 526,
+      "src": "tick",
+      "vol": 0.6
+    },
+    {
+      "at": 600,
+      "src": "tick",
+      "vol": 0.6
+    },
+    {
+      "at": 736,
+      "src": "page-turn",
+      "vol": 0.4
+    },
+    {
+      "at": 760,
+      "src": "ding",
+      "vol": 0.4
+    },
+    {
+      "at": 760,
+      "src": "boom",
+      "vol": 0.4
+    },
+    {
+      "at": 896,
+      "src": "page-turn",
+      "vol": 0.4
+    },
+    {
+      "at": 926,
+      "src": "whoosh",
+      "vol": 0.35
+    },
+    {
+      "at": 974,
+      "src": "tick",
+      "vol": 0.6
+    },
+    {
+      "at": 984,
+      "src": "tick",
+      "vol": 0.6
+    }
+  ]
+}

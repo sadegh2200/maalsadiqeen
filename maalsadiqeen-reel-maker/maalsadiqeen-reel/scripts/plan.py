@@ -177,13 +177,17 @@ def plan_bayan(c, fps):
     for l in b["lines"]:
         est += size * 1.8 * max(1, math.ceil(letters(l) * 0.55 * size / 840))
     top = int(max(460, min(700, 940 - est / 2)))  # vertically centred block
-    t = 24 if b.get("title") else 8
+    # The scene crossfades in over the previous one: hold every bayan reveal by `stagger` frames so
+    # the box arrives with its title and its first line ~0.3 s later — an empty quote box must never
+    # sit on the paper while the outgoing text is still fading.
+    stagger = 16
+    t = 10 if b.get("title") else 8
     lines_at = []
     for l in b["lines"]:
         lines_at.append(t)
         t += dwell(l, fps)
-    t += (14 if b.get("src") else 0) + hold(1.2, fps)
-    return {"dur": int(max(hold(4, fps), min(hold(10, fps), t))), "size": size, "top": top, "lines_at": lines_at}
+    t += (14 if b.get("src") else 0) + hold(1.6, fps)
+    return {"dur": int(max(hold(4, fps), min(hold(10, fps), t))), "size": size, "top": top, "lines_at": lines_at, "stagger": stagger}
 
 
 def plan_sanad(c, fps):
@@ -235,9 +239,10 @@ def sfx_for(order, scenes, c):
                 add(a + card["from"] + 14, "whoosh", 0.3)
                 add(a + card["from"] + 34, "tick", 0.6)
         elif sid == "bayan":
-            add(a, "page-turn", 0.4)
+            st = sc.get("stagger", 0)  # holds the box + its title together, so the ticks follow the same shift
+            add(a + st, "page-turn", 0.4)
             for t in sc["lines_at"]:
-                add(a + t, "tick", 0.6)
+                add(a + st + t, "tick", 0.6)
         elif sid == "sanad":
             add(a, "page-turn", 0.4)
             chain = (c.get("sanad") or {}).get("chain") or []

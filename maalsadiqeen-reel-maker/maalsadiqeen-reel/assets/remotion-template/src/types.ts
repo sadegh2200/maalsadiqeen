@@ -86,7 +86,7 @@ export type Plan = {
       title: number;
       desc: number;
     };
-    bayan?: { from: number; dur: number; size: number; top?: number; lines_at: number[] };
+    bayan?: { from: number; dur: number; size: number; top?: number; lines_at: number[]; /** frames by which every bayan reveal is held so the box and its title arrive together */ stagger?: number };
     sanad?: {
       from: number;
       dur: number;
