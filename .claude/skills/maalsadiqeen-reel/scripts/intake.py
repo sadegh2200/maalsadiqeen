@@ -338,7 +338,7 @@ def seed_markdown(seed: dict) -> str:
 # ----------------------------------------------------------------------------- main
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("inputs", nargs="+", help="text file(s), a directory, or - for stdin")
+    ap.add_argument("inputs", nargs="*", help="text file(s), a directory, or - for stdin")
     ap.add_argument("--slug", required=True)
     ap.add_argument("--sheets", nargs="*", default=[])
     ap.add_argument("--out", default=None, help="output directory (default $REEL_WORK/<slug>)")
@@ -347,7 +347,11 @@ def main() -> None:
     a = ap.parse_args()
 
     docs, sheets = collect(a.inputs)
-    sheets += [s for s in a.sheets if s not in sheets]
+    for s in a.sheets:
+        if Path(s).suffix.lower() in IMAGE_EXT and s not in sheets:
+            sheets.append(s)
+        else:
+            print(f"  ⚠ --sheets ignored «{s}»: not an image (pass text files as positional inputs)")
     if not docs and not sheets:
         sys.exit("no text and no sheets given")
     raw = "\n\n".join(d["text"] for d in docs)

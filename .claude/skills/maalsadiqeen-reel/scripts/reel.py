@@ -350,7 +350,7 @@ def main() -> None:
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     p = sub.add_parser("intake")
-    p.add_argument("inputs", nargs="+")
+    p.add_argument("inputs", nargs="*", help="text file(s), a directory, '-' for stdin, or nothing with --sheets")
     p.add_argument("--slug", required=True)
     p.add_argument("--sheets", nargs="*", default=[])
 

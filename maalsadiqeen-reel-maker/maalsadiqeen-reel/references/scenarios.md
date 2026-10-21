@@ -11,7 +11,7 @@ python3 scripts/reel.py build <slug> --choose 2  # only after the user has chose
 ```
 
 After `--finalize` the user sees `scenarios.md` (Persian table + one section per scenario) and
-`preview/index.html` (three frames per scenario). Nothing else happens until they answer.
+`preview.html` (three frames per scenario). Nothing else happens until they answer.
 
 ---
 
@@ -175,7 +175,7 @@ ASCII digits in a reference, an angle repeat from the last two reels.
 | ۲ | تصحیح سوء فهم | … | ۳۸ ث | S | ۷۷ |
 ...
 
-پیش‌نمایش سه فریم از هر سناریو: preview/index.html
+پیش‌نمایش سه فریم از هر سناریو: preview.html
 
 کدام را بسازم؟ «۱» — یا «۱ و ۳» برای دو نسخه.
 ```

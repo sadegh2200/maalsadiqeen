@@ -97,7 +97,7 @@ python3 $S/reel.py plan <slug>                 # scaffolds scenarios.json with 4
 python3 $S/reel.py plan <slug> --finalize      # validate + score + scenarios.md + preview → GATE
 ```
 
-Present the table (angle, promise, duration, cost, score), open `preview/index.html`, and ask which
+Present the table (angle, promise, duration, cost, score), open `preview.html`, and ask which
 one. **Do not build.** If the user says «همه», build them as separate deliveries, one at a time.
 
 ### 3 · Build — one scenario (`references/narrative.md`, `blocks.md`)
