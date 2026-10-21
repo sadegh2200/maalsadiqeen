@@ -346,7 +346,7 @@ def compile_spec(sc: dict, brand: dict, spec_id: str) -> dict:
 
 
 # ----------------------------------------------------------------------------- init
-TEMPLate_ANGLES = [
+TEMPLATE_ANGLES = [
     ("سؤال محوري", "A", "M"),
     ("تصحيح سوء فهم", "C", "M"),
     ("كلمة واحدة", "B", "S"),
@@ -357,6 +357,35 @@ TEMPLate_ANGLES = [
     ("ردّ شبهة بهدوء", "F", "L"),
 ]
 
+
+
+def scaffold_scenes(arch: str, primary: dict, handle: str) -> list[dict]:
+    """A buildable skeleton per archetype — the agent replaces «…», never has to invent the shape."""
+    src = primary.get("source", {}) or {}
+    book, loc, grade = src.get("book", "…"), src.get("loc", "ج… ص…"), src.get("grade", "")
+    cta = {"type": "cta", "seconds": 6.4, "line1": "…", "line2": "…", "share": "أَرْسِلْهَا لِمَنْ تُحِبّ",
+           "final": "…", "brand": {"handle": handle}}
+    hook = {"type": "hook", "seconds": 3.4, "lead": "«…»", "line1": "…", "line2": "…؟", "sub": "…"}
+    quote = {"type": "quote", "seconds": 9.0, "label": "قَالَ … عَلَيْهِ السَّلام", "text": "…",
+             "reveal": "words", "attribution": f"— … {book} {loc}".strip()}
+    verse = {"type": "verse", "seconds": 9.0, "label": "﴿ سُورَةُ … — … ﴾",
+             "lines": [["…"]], "highlight": {"words": [1]}}
+    contrast = {"type": "contrast", "seconds": 7.6, "wrong_label": "الظَّنُّ:", "wrong": "…",
+                "right_label": "وَالنَّصُّ:", "right": "…", "line3": "…"}
+    answer = {"type": "answer", "seconds": 8.0, "q1": "…", "q2": "…:", "hero": "…", "after": "…",
+              "source": f"— … {book} {loc}".strip()}
+    proof = {"type": "proof", "seconds": 8.0,
+             "cards": [{"book": book, "loc": loc, "grade": grade}], "line1": "…"}
+    title = {"type": "title", "seconds": 4.0, "kicker": "…", "title": "…", "sub": "…"}
+    plans = {
+        "A": [hook, verse, contrast, answer, proof, cta],
+        "B": [hook, quote, contrast, proof, cta],
+        "C": [hook, contrast, answer, quote, cta],
+        "D": [hook, dict(quote, seconds=12.0), dict(answer, seconds=9.0), cta],
+        "E": [title, dict(quote, seconds=12.0), dict(answer, seconds=9.0), cta],
+        "F": [hook, quote, contrast, answer, proof, cta],
+    }
+    return [dict(x) for x in plans.get(arch, plans["C"])]
 
 def init(slug: str, brief: dict, count: int, brand: dict, out: Path) -> dict:
     quotes = brief.get("quotes") or []
@@ -369,7 +398,7 @@ def init(slug: str, brief: dict, count: int, brand: dict, out: Path) -> dict:
                 rec = f"{m.group(1)}:{m.group(2)}"
                 break
     scenarios = []
-    for i, (angle, arch, cost) in enumerate(TEMPLate_ANGLES[:count], 1):
+    for i, (angle, arch, cost) in enumerate(TEMPLATE_ANGLES[:count], 1):
         scenarios.append({
             "id": i,
             "title_fa": f"… ({angle})",
@@ -377,21 +406,7 @@ def init(slug: str, brief: dict, count: int, brand: dict, out: Path) -> dict:
             "archetype": arch,
             "one_sentence": "…",
             "hook": {"text": "…", "formula": 0},
-            "scenes": [
-                {"type": "hook", "seconds": 3.4, "lead": "«…»", "line1": "…", "line2": "…؟", "sub": "…"},
-                {"type": "quote", "seconds": 9.0, "label": "قَالَ … عَلَيْهِ السَّلام",
-                 "text": primary.get("text", "…")[:120] or "…", "reveal": "words",
-                 "attribution": "— … ج… ص…"},
-                {"type": "contrast", "seconds": 8.0, "wrong_label": "الظَّنُّ:", "wrong": "…",
-                 "right_label": "وَالنَّصُّ:", "right": "…", "line3": "…"},
-                {"type": "proof", "seconds": 8.0,
-                 "cards": [{"book": (primary.get("source", {}) or {}).get("book", "…"),
-                            "loc": (primary.get("source", {}) or {}).get("loc", "ج… ص…"),
-                            "grade": (primary.get("source", {}) or {}).get("grade", "")}],
-                 "line1": "…"},
-                {"type": "cta", "seconds": 6.4, "line1": "…", "line2": "…", "share": "أَرْسِلْهَا لِمَنْ تُحِبّ",
-                 "final": "…", "brand": {"handle": brand.get("handle", "maalsadiqeen")}},
-            ],
+            "scenes": scaffold_scenes(arch, primary, brand.get("handle", "maalsadiqeen")),
             "needs": {"recitation": rec, "proof": [x for x in [primary.get("source", {}).get("book")] if x], "assets": []},
             "life_impact": "…",
             "risk": "low",
