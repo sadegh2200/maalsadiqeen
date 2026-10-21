@@ -1,13 +1,18 @@
 # Publishing playbook (Instagram Reels first; TikTok/YouTube Shorts reuse the same master)
 
 Distilled from the ig-reel / viral-instagram-reels skills, filtered for a scholarly page. Applies to both
-engines (HyperFrames default, Remotion studio alternate). `scripts/post_kit.py <spec|content.json>` writes
-the caption, the pinned references comment, alt hooks and this checklist as `post.md`.
+engines (HyperFrames default, Remotion studio alternate).
+
+> **v3:** the publishing kit is produced by `scripts/social_kit.py` (captions for IG/FB/X, the seven-comment
+> bank, the schedule and the validation report) — see `references/platforms.md` and
+> `references/comments.md`. `post_kit.py` still writes the single-file `post.md` for the legacy flow, but
+> the platform rules it predates have moved on: prefer `social_kit.py`.
 
 ## Deliverables per reel (`export_variants.py`)
 
 - `<name>.mp4` — 9:16 master (1080×1920, 30 fps, −15.5 LUFS).
-- `<name>-cover.jpg` — frame at hero + 0.9 s (the quotable sentence) — upload as the cover; crop-safe.
+- `<name>-cover.jpg` — **optional, only with `--cover`**: frame at hero + 0.9 s. By default no cover is
+  exported; Instagram uses the first frame, and `verify.py` already checks that it is readable.
 - `<name>-feed-4x5.mp4` — for the grid if the account posts reels to the feed with a 4:5 preview.
 - `beat-sheet.md` — scene table with cues, copy, sources (the user re-uses it for the caption and for
   translators).

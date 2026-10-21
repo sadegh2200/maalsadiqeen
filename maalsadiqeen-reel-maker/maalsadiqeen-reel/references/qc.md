@@ -1,4 +1,9 @@
-# QC gates (nothing ships without all four)
+# QC gates (nothing ships without all of them)
+
+> **v3 adds three machine gates before the four below:** `copy_lint.py` (on-screen wording),
+> `captions.py` (IG/FB/X limits) and `comments.py` (seven slots). `social_kit.py` aggregates them into
+> `validation.md`; `verify.py --kit <dir>` reads that verdict, and `verify.py --source-spec` runs the
+> copy gate inside QC. A red `validation.md` blocks delivery.
 
 ## Gate 1 — Content (before any code)
 

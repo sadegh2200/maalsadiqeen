@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "note": "Rolling log of produced reels, used as the diversity guard (scenarios.py) and as the learning loop input. Append one entry per delivered reel; do not delete history.",
+  "fields": [
+    "slug",
+    "date",
+    "archetype",
+    "angle",
+    "hook_formula",
+    "cta",
+    "topic",
+    "duration",
+    "platforms",
+    "metrics_48h"
+  ],
+  "reels": []
+}

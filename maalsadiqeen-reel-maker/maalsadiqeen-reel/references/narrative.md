@@ -1,5 +1,9 @@
 # Narrative archetypes & beat sheets (30–60 s, default 45 s)
 
+> Archetypes A–F below are the building blocks. Since v3 you do not pick one straight from the brief:
+> `references/scenarios.md` turns them into four scored menus (eight angles), and the user chooses
+> before anything is built. Use this file once the choice is made.
+
 Every reel has the same spine — **hook → evidence → turn → authority → proof → take-away/CTA** —
 but the blocks and timings change with the content class. Scene budgets below are for 45 s; scale
 proportionally for 36–58 s, never beyond 60 s (verify.py fails at > 60).

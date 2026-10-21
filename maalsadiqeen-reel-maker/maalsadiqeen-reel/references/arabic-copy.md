@@ -1,5 +1,9 @@
 # Writing the on-screen Arabic (فصيح، متين، قابل للانتشار)
 
+> **Captions and X posts use the same register** with different lengths: the caption is prose
+> (نصّ → شرح → استنباط → أثر), the X post is one claim. Platform limits and skeletons live in
+> `references/platforms.md`; `scripts/captions.py` enforces them and refuses follow-bait.
+
 The audience is educated Arabic speakers who will notice a wrong ḥaraka faster than a wrong colour.
 Write like a careful editor of a religious quarterly who also knows what stops a thumb.
 

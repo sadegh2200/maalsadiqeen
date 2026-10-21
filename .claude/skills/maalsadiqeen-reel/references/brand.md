@@ -1,7 +1,12 @@
 # Brand system — «مع الصادقين» (@maalsadiqeen)
 
 The page publishes dignified Arabic religious knowledge (Qurʾan, ḥadīth of the Ahl al-Bayt, scholarly
-verification) for an educated Arabic-speaking audience. The video identity is a *moving version of the
+verification) for an educated Arabic-speaking audience.
+
+> **Voice lives elsewhere.** Visual tokens are here; the *verbal* identity — promise, layers, lexicon,
+> honorifics, honour code, the «الأثر في الحياة» block, the approved CTAs and the forbidden list — is
+> `references/brand-voice.md`, and the reader is `references/audience.md`. `config/brand.json` is the
+> machine-readable half of both. The video identity is a *moving version of the
 paper sheets*: cream paper, dark green text, gold accents, a thin green arc with diamonds, an olive
 sprig top-right, the tree logo. Nothing flashy; every motion must feel like ink settling on paper.
 

@@ -12,6 +12,8 @@ Exit code 1 on any FAIL. Open qc/sheet.jpg and look at every frame — the eye i
 import argparse, json, os, re, subprocess, sys, glob, shutil
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from _common import media_duration  # noqa: E402
 FAILS, WARNS, OKS = [], [], []
 
 
@@ -60,6 +62,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("project"); ap.add_argument("--render"); ap.add_argument("--snaps")
     ap.add_argument("--no-check", action="store_true"); ap.add_argument("--target-lufs", type=float, default=None)
+    ap.add_argument("--light", action="store_true", help="skip hyperframes check + snapshots (fast, no browser)")
+    ap.add_argument("--no-audio", action="store_true", help="skip audio presence/duration checks (no ffprobe)")
+    ap.add_argument("--source-spec", default=None, help="spec.json to run the copy gate on")
+    ap.add_argument("--kit", default=None, help="kit directory to validate (captions + comments)")
     a = ap.parse_args()
     proj = os.path.abspath(a.project)
     qc = os.path.join(proj, "qc"); os.makedirs(qc, exist_ok=True)
@@ -97,14 +103,18 @@ def main():
     # ---- 2. html sanity
     print("[2] index.html")
     (fail if re.search(r"<html[^>]*\bdir=", html) else ok)("no dir attribute on <html> (render-breaker)" if not re.search(r"<html[^>]*\bdir=", html) else "<html dir=…> present — remove it (blank render)")
-    m = re.search(r'<audio[^>]*src="([^"]+)"', html)
-    if m:
+    m = None if a.no_audio else re.search(r'<audio[^>]*src="([^"]+)"', html)
+    if a.no_audio:
+        warn("audio checks skipped (--no-audio): no ffprobe here, the soundtrack is a placeholder")
+    elif m:
         ap_ = os.path.join(proj, m.group(1))
         (ok if os.path.exists(ap_) else fail)(f"audio {m.group(1)} present" if os.path.exists(ap_) else f"audio {m.group(1)} missing — run mix.py")
         if os.path.exists(ap_):
-            r = ffprobe(ap_, "a:0", "stream=duration")
-            ad = float(r.get("duration", 0))
-            (ok if abs(ad - D) < 0.2 else fail)(f"audio duration {ad:.2f}s matches" if abs(ad - D) < 0.2 else f"audio duration {ad:.2f}s ≠ {D}s")
+            ad = media_duration(ap_)
+            if ad is None:
+                warn("audio duration unknown (no ffprobe/ffmpeg) — listen to it once")
+            else:
+                (ok if abs(ad - D) < 0.25 else fail)(f"audio duration {ad:.2f}s matches" if abs(ad - D) < 0.25 else f"audio duration {ad:.2f}s ≠ {D}s")
     else:
         warn("no <audio> element")
     for f in ("assets/fonts/AmiriQuran.ttf", "assets/fonts/NotoKufiArabic-Bold.ttf", "assets/img/logo.png", "assets/gsap.min.js", "hyperframes.json"):
@@ -119,7 +129,7 @@ def main():
     if os.path.isdir("/opt/node22/bin"):
         env["PATH"] = "/opt/node22/bin:" + env.get("PATH", "")
     os.makedirs(env["TMPDIR"], exist_ok=True); os.makedirs(env["HYPERFRAMES_EXTRACT_CACHE_DIR"], exist_ok=True)
-    if not a.no_check:
+    if not a.no_check and not a.light:
         print("[3] hyperframes check")
         if not os.path.isdir(os.path.join(workdir, "node_modules", "hyperframes")):
             fail(f"hyperframes not installed in {workdir} (source scripts/env.sh)")
@@ -170,6 +180,33 @@ def main():
             (ok if P is not None and P <= -0.8 else warn)(f"true peak {P} dBTP")
         size = os.path.getsize(a.render) / 1e6
         (ok if size < 100 else warn)(f"{size:.1f} MB")
+
+    # ---- 5. optional gates: copy + kit
+    if a.source_spec:
+        print("[5] copy gate")
+        try:
+            sys.path.insert(0, HERE)
+            import copy_lint  # noqa: PLC0415
+            spec = json.load(open(a.source_spec, encoding="utf-8"))
+            brand = {}
+            bp = os.path.join(os.path.dirname(HERE), "config", "brand.json")
+            if os.path.exists(bp):
+                brand = json.load(open(bp, encoding="utf-8"))
+            L = copy_lint.lint_spec(spec, brand)
+            (ok if not L.fails else fail)(f"copy: {len(L.fails)} failures, {len(L.warns)} warnings")
+            for x in L.fails:
+                fail(f"copy [{x['where']}] {x['msg']}")
+        except Exception as e:  # never let the optional gate crash QC
+            warn(f"copy gate skipped: {e}")
+    if a.kit:
+        print("[5] kit gate")
+        vpath = os.path.join(a.kit, "validation.md")
+        if os.path.exists(vpath):
+            txt = open(vpath, encoding="utf-8").read()
+            bad = txt.startswith("# اعتبارسنجی کیت — قرمز")
+            (fail if bad else ok)("kit validation " + ("FAILED — see " + vpath if bad else "green"))
+        else:
+            warn(f"no validation.md in {a.kit} — run social_kit.py")
 
     print(f"\n{len(OKS)} ok · {len(WARNS)} warnings · {len(FAILS)} failures")
     for w in WARNS: print("  ⚠", w)

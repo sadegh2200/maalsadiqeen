@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
+import shutil
 import sys
 from pathlib import Path
 
@@ -51,3 +53,26 @@ def die(msg: str, code: int = 1):
 
 def skill_root() -> Path:
     return Path(__file__).resolve().parent.parent
+
+# ----------------------------------------------------------------------------- media probes
+def have(bin_name: str) -> bool:
+    return shutil.which(bin_name) is not None
+
+
+def media_duration(path: str) -> float | None:
+    """ffprobe when it exists, otherwise parse `ffmpeg -i` — the same number, one fewer dependency."""
+    if have("ffprobe"):
+        r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                            "-of", "csv=p=0", str(path)], capture_output=True, text=True)
+        try:
+            return float(r.stdout.strip())
+        except ValueError:
+            pass
+    if have("ffmpeg"):
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(path)], capture_output=True, text=True)
+        m = re.search(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)", r.stderr)
+        if m:
+            h, mi, s = m.groups()
+            return int(h) * 3600 + int(mi) * 60 + float(s)
+    return None
+

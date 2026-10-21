@@ -4,6 +4,11 @@ Upgraded from ig-reel's 26 formulas for a dignified, formal-Arabic audience. A h
 (3–8 words), is **answered by the hadith on screen**, and never promises more than the card contains.
 Score with `scripts/hook_score_ar.py` (target ≥ 80; publish nothing below 65).
 
+The v3 scorer has seven dimensions — brevity 22 · curiosity 16 · stakes 12 · second person 12 ·
+specificity 12 · structure 8 · **dignity 18**. Dignity is lost for fear-framing, second-person threats,
+clickbait, vagueness and shouting; a fear hook can still score, but it is punished because it is
+off-brand even when it works. `--profile classic` reproduces the old weights for comparison.
+
 | # | Formula | Pattern | Example (≥ 80) |
 |---|---|---|---|
 | 1 | Sufficiency challenge | هل يكفي X لِـ Y؟ | هل يكفي الحُبُّ لتكونَ من شيعتِهم؟ |

@@ -1,79 +1,128 @@
 {
   "skill_name": "maalsadiqeen-reel",
+  "version": "3.0",
+  "note": "Each eval is self-contained unless it names files. Evals that need the page's private carousel cards say so in files/README.md. The v3 flow adds one mandatory behaviour to every build eval: four scenarios, then the gate, then the build.",
   "evals": [
     {
       "id": 1,
+      "name": "private sheets → four scenarios → gate",
       "prompt": "این سه ورق صفحهٔ «مع الصادقین» است. یک ریل حرفه‌ای ۴۵ ثانیه‌ای از روی آن‌ها بساز؛ بدون گوینده، تلاوت اشکالی ندارد.",
-      "files": [
-        "evals/files/sheet-1.jpg",
-        "evals/files/sheet-2.jpg",
-        "evals/files/sheet-3.jpg"
-      ],
-      "expected_output": "A brief classifying the sheets as archetype A (verse 9:119 + hadith of Imam al-Ridha + grading), a spec using hook/verse/contrast/answer/proof/cta, recitation ar.mahermuaiqly with word cues, mix without narration, verify.py passing with snapshots inspected, a 45 s 1080x1920 MP4, cover, beat sheet and a Persian summary.",
+      "files": ["evals/files/sheet-1.jpg", "evals/files/sheet-2.jpg", "evals/files/sheet-3.jpg"],
+      "requires": "private sheets — see evals/files/README.md",
+      "expected_output": "The agent reads the three images, runs intake, writes a Persian brief, produces four scored scenarios with distinct angles, renders preview/index.html, and STOPS to ask which one. Only after the user chooses does it build that scenario, run the gates and hand over the kit.",
       "expectations": [
         "Reads all three images before writing any copy and transcribes the verse, the hadith, the two references and the Majlisi comment verbatim",
-        "Chooses archetype A and explains the hinge word «مَعَ» as the turn of the reel",
-        "Uses no TTS/human narration; includes Quran recitation for 9:119 synced to word cues",
-        "Runs build_reel.py, mix.py and verify.py (hyperframes check + snapshots) before rendering and reads qc/sheet.jpg",
-        "Final MP4 is 1080x1920, 30 fps, between 36 and 60 seconds, with an AAC audio track at about -15.5 LUFS",
-        "On-screen Arabic is fully vocalised in the verse/hadith/hero lines and the references include ج/ص",
-        "Delivers cover.jpg and a Persian beat sheet and replies in Persian with the scene table and posting advice"
+        "Runs intake.py (or an equivalent) and writes brief.md with one idea, the three layers and an «الأثر في الحياة» line",
+        "Writes four complete scenarios with at least three distinct angles and two distinct archetypes; each has a hook, scenes, sources, life_impact and why_fa",
+        "Runs `reel.py plan --finalize` (validate + score + preview) and shows the Persian table with scores",
+        "Does NOT build or render before the user names a scenario — if it builds anyway the eval fails",
+        "After the choice: copy_lint 0 failures, three valid captions, seven valid comments, verify 0 failures",
+        "Delivers the MP4 plus kit in $REEL_DELIVER/<slug>-<id>/ and replies in Persian with the scene table and posting advice"
       ]
     },
     {
       "id": 2,
-      "prompt": "برای صفحهٔ مع الصادقین یک ریل بساز از این حدیث امیرالمؤمنین(ع): «النَّاسُ أَعْدَاءُ مَا جَهِلُوا» — نهج البلاغة، الحكمة ١٧٢. آیه‌ای در کار نیست.",
-      "files": [],
-      "expected_output": "Archetype B or C spec without a verse: hook, quote (word reveal), contrast, list or hero quote, proof card (no seal because no grading is stated), cta; sound design + bed only; verify passes; render delivered with cover and beat sheet.",
+      "name": "short text with a graded hadith — full pipeline",
+      "prompt": "این متن را به ریل تبدیل کن. لطفاً قبل از ساخت چند سناریو نشانم بده.",
+      "files": ["evals/files/chapter-short.md"],
+      "expected_output": "A brief classifying the text as archetype A (verse 9:119 + hadith of Imam al-Ridha with a stated grading + Majlisi's explanation), four scenarios, then a build of the chosen one with hook/verse/contrast/answer/proof/cta, recitation ar.mahermuaiqly, and a green kit.",
       "expectations": [
-        "Does not add a recitation or invent a verse; audio is bed + sound design only",
-        "Does not show the «صحيح السند» seal because the sheet states no grading",
-        "Writes a dignified فصيح hook that poses a question or exposes a common misreading, no exclamation marks or emojis",
-        "Uses the quote block with reveal words for the hadith and attributes it «— نهج البلاغة · الحكمة ١٧٢»",
-        "Total duration between 30 and 60 seconds and build_reel.py prints no unresolved WARN",
-        "verify.py passes and the snapshots are inspected before render"
+        "Classifies the text as A and names the hinge word «مَعَ» in the brief",
+        "Three layers are visibly separated on screen: verse (﴿ ﴾ + sūrah/āyah), hadith with book/volume/page, and an inference marked as ours",
+        "The proof block shows a seal only because the input states «بِسَنَدٍ صَحِيح»; the Majlisi line is attributed by name",
+        "Life-impact line is one concrete deed, not a slogan",
+        "Uses recitation for 9:119 and sizes the verse scene from its duration",
+        "copy_lint, captions and comments are green; verify.py passes before render",
+        "Final answer is in Persian and states what was verified and what the user should check"
       ]
     },
     {
       "id": 3,
-      "prompt": "همان ریل «کونوا مع الصادقین» را با یک هوک جایگزین (نسخهٔ B) و یک برش ۴:۵ برای فید بساز و بگو چطور A/B را بسنجم.",
-      "files": [
-        "evals/files/sheet-1.jpg"
-      ],
-      "expected_output": "A second spec that changes only the hook scene (e.g. «إِذَا كَانَتِ التَّقْوَى فَرِيضَة، فَمَعَ مَنْ أَمَرَكَ اللهُ أَنْ تَكُون؟»), same length, re-verified and rendered; a 4:5 export via export_variants.py; Persian advice: post 3–4 days apart or use Trial Reels, compare average watch time and sends/reach.",
+      "name": "long lecture — split, do not cram",
+      "prompt": "این متن سخنرانی را ریل کن؛ هر چه سریع‌تر.",
+      "files": ["evals/files/lecture-long.md"],
+      "expected_output": "The agent recognises three independent ideas, proposes a 3-part series instead of one crammed reel (or builds part 1 and says the rest are parts 2–3), and never exceeds the 70-word screen budget by shrinking type.",
       "expectations": [
-        "Changes only scene 1 of the spec and keeps the total duration identical to the master",
-        "Re-runs build, mix and verify for the variant instead of editing the rendered video",
-        "Produces the 4:5 feed version with crop=1080:1350:0:220 via export_variants.py --feed",
-        "Explains A/B measurement in Persian: spacing posts 3–4 days or Trial Reels, judging by average watch time and sends per reach, not raw views"
+        "intake.py reports shape=split (or the agent says explicitly that the text is a series)",
+        "Proposes a named series with 2–3 parts, each with its own idea, source and question",
+        "Does not put the whole lecture on screen; keeps ≤ 70 words per reel",
+        "Each part carries its own reference — no «انظر الجزء الأول»",
+        "Publishes part 1 with a question that opens part 2, not a cliffhanger",
+        "Says in Persian why it did not build a single 60-second reel"
       ]
     },
     {
       "id": 4,
-      "prompt": "به مناسبت ولادت امام رضا(ع) (۱۱ ذی‌القعده) یک ریل ۳۵ ثانیه‌ای کوتاه در سبک مع الصادقین می‌خواهم؛ متن را خودت انتخاب کن اما منبع بده.",
-      "files": [],
-      "expected_output": "Archetype E: title card with the date and the Imam's name, a quote with a sourced hadith of/about Imam al-Ridha, a hero line, a cta with a greeting line; the assistant flags that the chosen text must be verified by the user if it cannot confirm the reference, and does not fabricate a grading.",
+      "name": "hadith with no source — refuse to invent",
+      "prompt": "از این حدیث یک ریل بساز: «النَّاسُ أَعْدَاءُ مَا جَهِلُوا».",
+      "files": ["evals/files/hadith-no-source.md"],
+      "expected_output": "A scenario built on the hadith without a proof seal and without invented volume/page; the agent either asks for the reference or builds with a source card that says only what is known, and flags the gap in the summary.",
       "expectations": [
-        "Uses the title block first with the date in Arabic-Indic digits and the Imam's name with honorific",
-        "States the reference for the chosen text and explicitly flags any uncertainty instead of inventing a chain grading",
-        "Keeps the reel at about 35 seconds and ends with a greeting line plus the brand card",
-        "Audio: no narrator; recitation only if an ayah is actually included; otherwise bed and sound design",
-        "Runs verify.py and inspects snapshots before rendering"
+        "Does not invent «نهج البلاغة، الحكمة ١٧٢» or any other reference the input does not contain",
+        "Shows no «صحيح السند» seal because no grading is stated",
+        "Either asks one clear question about the source, or keeps the proof block out and says so",
+        "The reel still makes sense: contrast/answer carry the meaning",
+        "intake flags the missing source (the ⚠ about a quote without a reference appears in the summary)",
+        "Persian summary names the uncertainty explicitly"
       ]
     },
     {
       "id": 5,
-      "prompt": "اسپک assets/examples/sadiqeen-9-119.silent.json را به ریل تبدیل کن (بدون تغییر متن)، صدا را بساز، verify را رد کن و اگر رندر ممکن است رندر کن؛ در پایان پست‌کیت و بیت‌شیت فارسی بده.",
-      "files": [
-        "assets/examples/sadiqeen-9-119.silent.json"
-      ],
-      "expected_output": "build_reel.py → project with 6 scenes / 45 s and no WARN; recite.py (or a user-supplied recitation file when the CDN is unreachable) + mix.py at −15.5 LUFS; verify.py pre-render passes and qc/sheet.jpg is inspected; render + verify --render when the toolchain exists, otherwise the exact missing pieces are reported; post_kit.py post.md and beat_sheet.py --lang fa delivered; Persian summary.",
+      "name": "objection — calm, no sectarian naming",
+      "prompt": "این اشکال را جواب بده؛ ولی لحن تند نباشد.",
+      "files": ["evals/files/objection.md"],
+      "expected_output": "Archetype F: the objection is stated fairly in one line, answered from the text and the hadith, nobody is named or insulted, and the tone stays inside the brand voice.",
       "expectations": [
-        "Does not edit any Arabic copy of the spec; only tooling is run",
-        "Runs build_reel.py, mix.py and verify.py in that order and reads the warnings",
-        "Handles a missing recitation download gracefully (asks for a file / --from-files) instead of shipping without the verse audio silently",
-        "Produces post.md with the caption, pinned references comment and hashtags via post_kit.py",
-        "Produces the Persian beat sheet and reports what was and was not verified"
+        "intake classifies the text as F (objection)",
+        "The objection is presented in its strongest fair form, not as a straw man",
+        "The answer cites the hadith and the reference; no unstated grading",
+        "No sect, scholar or group is insulted or named as an opponent",
+        "No fear framing, no «!!», no clickbait in the hook",
+        "The closing CTA invites a calm reply, not a fight"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "kit only — captions and comments for an existing spec",
+      "prompt": "برای این اسپک فقط کپشن سه پلتفرم و کامنت‌ها را بده؛ ویدیو لازم نیست.",
+      "files": ["evals/files/spec-9-119.json"],
+      "expected_output": "social_kit.py (or captions.py + comments.py) produces IG/FB/X captions inside the platform limits, seven comments ≤ 300 chars with the sources comment pinned and scheduled, and a green validation.md — without building or rendering anything.",
+      "expectations": [
+        "Does not call build_reel.py, mix.py or render.sh",
+        "Instagram 600–1200 chars with 3–5 hashtags; Facebook 400–900 with a real question and 0–2 hashtags; X ≤ 250 with 0–1 hashtag",
+        "No link in any caption body, no emoji, no exclamation marks, no follow-bait",
+        "Seven comments, the first pinned and carrying the reference, all ≤ 300 chars",
+        "Comments are scheduled in Baghdad time with the UTC equivalent",
+        "validation.md is green; any red caption is moved to captions/_FAILED/ and reported"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "A/B variant — change the hook only",
+      "prompt": "همان ریل «کونوا مع الصادقین» را با یک هوک جایگزین (نسخهٔ B) بساز و بگو چطور A/B را بسنجم.",
+      "files": ["evals/files/spec-9-119.json"],
+      "expected_output": "A variant that changes only scene 1, keeps the duration identical, re-runs the gates, and gives Persian A/B advice based on watch time and sends-per-reach.",
+      "expectations": [
+        "Uses `scenarios.py variant` or edits only the hook scene — the body and every source stay identical",
+        "Re-runs copy_lint, build and verify for the variant instead of editing the rendered file",
+        "Duration stays the same (± 0.5 s) so the comparison is fair",
+        "Explains A/B in Persian: 3–4 days apart or Trial Reels, judge on 3-second watch and sends/reach, not likes",
+        "Does not produce a cover unless asked"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "missing toolchain — degrade honestly",
+      "prompt": "همین حالا ریل «کونوا مع الصادقین» را بساز. (محیط: پایتون هست، ffmpeg و node نصب نیستند.)",
+      "files": ["evals/files/spec-9-119.json"],
+      "expected_output": "The agent checks the toolchain first, delivers what is possible (spec check, project HTML, captions, comments, schedule), says exactly what is missing and the commands that remain, and never claims a render happened.",
+      "expectations": [
+        "Runs bootstrap.sh --check (or env.sh) and reports what is missing before doing anything",
+        "Still produces the captions, comments and publish.md — the publishing half does not need ffmpeg",
+        "If it builds the project, it says the soundtrack is a silent placeholder and that the result is not publishable",
+        "Prints the exact remaining commands (ffmpeg install, hyperframes, render.sh) instead of a vague apology",
+        "Does not describe a non-existent MP4, LUFS number or render time",
+        "Offers to continue once the toolchain exists"
       ]
     }
   ]
