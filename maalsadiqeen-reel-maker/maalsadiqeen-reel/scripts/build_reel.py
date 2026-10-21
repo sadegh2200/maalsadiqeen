@@ -1237,6 +1237,7 @@ def build(spec, out, skill_root, theme: str | None = None):
     scenes = spec["scenes"]
     brand_cfg = load_brand(skill_root)
     theme_name, tokens = theme_of(spec, brand_cfg, theme)
+    spec["theme"] = theme_name                     # so the summary and spec.resolved agree
     # ids, continuity
     for i, sc in enumerate(scenes):
         sc.setdefault("id", f"s{i+1}")
