@@ -213,6 +213,12 @@ reel build  <slug> --choose 2,4 --preset minimal   # → MP4 + captions/ + comme
 
 ## ۷) اسکیل‌های مکمل — چه نصب کنیم، چه بسازیم
 
+> **اجرا شد (۲۰۲۶-۱۰-۲۱):** چهار اسکیل نصب و در `vendor/skills/` نگه‌داری شدند —
+> `skill-creator` (anthropics/skills، Apache-2.0)، `ig-reel` (Jakeschincariol، MIT)،
+> `virat-design` (viratk-dev، MIT) و `instagram-growth` (social-media-skills، MIT).
+> منبع، کامیت، ستاره‌ها، گزینه‌های ردشده و قاعدهٔ تقدم در `vendor/skills/README.md`.
+> سه اسکیل بومی (`arabic-editor`، `hadith-sanad`، `social-kit`) هنوز ساخته نشده‌اند.
+
 > نام‌ها و مخزن‌ها پیش از نصب باید راستی‌آزمایی شوند؛ در این محیط فقط GitHub / npm / PyPI قابل دسترسی است. هر اسکیل بیرونی باید با خط قرمزهای برند تطبیق داده شود (تجربهٔ ادغام قبلی نشان داد دو اسکیل می‌توانند در پالت و لحن تناقض داشته باشند).
 
 | حوزه | چرا لازم است | نامزد | تصمیم | اولویت |
