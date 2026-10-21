@@ -45,6 +45,9 @@ npx skills add sadegh2200/my --skill maalsadiqeen-reel
 `bash install-skill.sh --check` برای بررسی. نسخهٔ مادر همان `maalsadiqeen-reel-maker/maalsadiqeen-reel/` است؛
 فقط آن را ویرایش کنید و اسکریپت را دوباره اجرا کنید.
 
+اسکریپت، چهار اسکیل مکمل را هم نصب می‌کند (`skill-creator`، `ig-reel`، `virat-design`،
+`instagram-growth`)؛ جزئیات، منبع و قاعدهٔ تقدم در [`vendor/skills/README.md`](../vendor/skills/README.md).
+
 پیش‌نیازها را `scripts/env.sh` خودش بررسی می‌کند و دستور نصبِ هر چیزِ کم را چاپ می‌کند: Python ≥ 3.9 با
 `numpy` و `pillow`، `ffmpeg/ffprobe`، Node ≥ 22 و `hyperframes@0.8.157` (+ Chrome Headless Shell با
 `npx hyperframes browser ensure`). برای موتور جایگزین: `scripts/setup_studio.py` (Remotion 4).

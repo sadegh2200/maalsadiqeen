@@ -165,6 +165,21 @@ A/B or Trial Reels, metrics to watch) and every flagged uncertainty (unreadable 
 | `assets/{fonts,brand,sfx,gsap.min.js,hyperframes.json}` | everything `build_reel.py` copies into a project; `assets/remotion-template/` is the Remotion studio |
 | `evals/evals.json`, `evals/rubric.md`, `evals/files/` | 5 test prompts (2 need the page's private sheets — see `evals/files/README.md`) + grading rubric |
 
+## Companion skills (installed beside this one)
+
+Four third-party skills are vendored in `vendor/skills/` and installed in the same three skill paths
+(`.claude/skills/`, `~/.claude/skills/`, `~/.agents/skills/`). For this page **this skill is always the
+pipeline**; the companions are reference material and tools, never an alternative workflow.
+
+| skill | use it for | guardrail |
+|---|---|---|
+| `skill-creator` | editing this skill, writing evals, validating frontmatter, packaging | not for producing reels |
+| `ig-reel` | a second opinion on Reel structure, 26 hook formulas, beat-sheet math | English-first; score Arabic hooks with `scripts/hook_score_ar.py`, never its `hookscore.py` |
+| `virat-design` | static frame / cover / carousel art direction when asked | its Virat palette and Jakarta/Inter fonts never override `references/brand.md` (paper/green/gold; Amiri/Kufi/Naskh; no red) |
+| `instagram-growth` | reach/sends/watch-time diagnosis, eligibility gates, Trial Reels | its WoopSocial references are inert; use native Insights. FB/X rules live in `references/publish.md` |
+
+Read `vendor/skills/README.md` for sources, commits, licences, rejected alternatives and precedence.
+
 ## Done means
 
 - `$REEL_DELIVER/<slug>.mp4` passes `verify.py --render` (1080×1920, ≤ 60 s, AAC, LUFS within ±1.2 of target).
