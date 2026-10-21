@@ -1,1 +1,62 @@
 # maalsadiqeen
+
+مخزن اسکیل **«ریل‌ساز مع الصادقین»** (`maalsadiqeen-reel`) — تبدیل ورق‌های برند صفحهٔ @maalsadiqeen به ریل
+عمودی ۱۰۸۰×۱۹۲۰ و ۳۰–۶۰ ثانیه‌ای: خواندن ورق، بریف، نگارش فصیح، ساخت پروژه، تلاوت و طراحی صدا، گیت کیفیت،
+رندر، کاور، بیت‌شیت فارسی و پست‌کیت. راهنمای کامل خودِ اسکیل: [`SKILL.md`](maalsadiqeen-reel-maker/maalsadiqeen-reel/SKILL.md)
+· معرفی و نصب: [`maalsadiqeen-reel-maker/README.md`](maalsadiqeen-reel-maker/README.md) · گزارش بازبینی:
+[`REVIEW-fa.md`](maalsadiqeen-reel-maker/REVIEW-fa.md).
+
+## نصب‌شده در این محیط
+
+نسخهٔ مادر (فقط این‌جا ویرایش کنید): `maalsadiqeen-reel-maker/maalsadiqeen-reel/` — نام فنی `maalsadiqeen-reel`، نسخهٔ 2.0.0،
+۱۰۱ فایل (SKILL.md + ۱۳ مرجع + ۱۹ اسکریپت پایتون + ۲ شل + assets + evals).
+
+همین نسخه، بایت‌به‌بایت، در سه مسیر استاندارد نصب شده است:
+
+| مسیر | دامنه | برای |
+|---|---|---|
+| `.claude/skills/maalsadiqeen-reel/` | پروژه (همین مخزن) | Claude Code و هر ایجنتی که اسکیل‌های پروژه را می‌خواند |
+| `~/.claude/skills/maalsadiqeen-reel/` | کاربر | Claude Code در هر پوشه‌ای |
+| `~/.agents/skills/maalsadiqeen-reel/` | کاربر (مسیر مشترک) | Codex / Copilot / Gemini CLI و بقیه |
+
+نصب/همگام‌سازی دوباره و بررسی سلامت:
+
+```bash
+bash install-skill.sh           # کپی از نسخهٔ مادر به هر سه مسیر + مقایسهٔ بایت‌به‌بایت
+bash install-skill.sh --check   # فقط بررسی: هر سه نسخه با مادر یکسان‌اند؟
+```
+
+اگر نسخهٔ مادر را تغییر دادید، فقط `bash install-skill.sh` را دوباره اجرا کنید؛ نسخه‌های نصب‌شده بازنویسی می‌شوند.
+
+## شروع کار در گفتگو
+
+ورق‌ها (تصویر) را پیوست کنید و بنویسید: «از این ورق‌ها یک ریل برای مع الصادقین بساز». ایجنٹ خودش
+`SKILL.md` را می‌خواند و گردش‌کار ۰–۷ را اجرا می‌کند. اگر خواستهٔ خاصی دارید بگویید: «نسخهٔ B هوک»،
+«برش ۴:۵»، «۳۵ ثانیه برای مناسبت»، «با گوینده»، «با Remotion».
+
+دستور آغاز هر جلسه:
+
+```bash
+source .claude/skills/maalsadiqeen-reel/scripts/env.sh   # مسیرها + بررسی ابزارها
+```
+
+سپس `SKILL.md` → مرحلهٔ ۰ (ابزارها)، ۱ (خواندن ورق و بریف)، ۲ (هوک و spec)، ۳ (build)، ۴ (صدا)، ۵ (verify)،
+۶ (رندر)، ۷ (کاور/بیت‌شیت/پست‌کیت). خروجی‌ها به‌صورت پیش‌فرض در `./reel-work` و `./reel-deliver` ساخته می‌شوند
+(در `.gitignore` هستند).
+
+## وضعیت ابزارها (بررسی‌شده در ۲۰۲۶-۱۰-۲۱، بدون اجرای رندر)
+
+| ابزار | وضعیت |
+|---|---|
+| Python 3.11.2 | ✓ (همهٔ ۱۹ اسکریپت با `py_compile` سبز) |
+| Node 22.22.3 · npm 10.9.8 | ✓ |
+| `numpy` · `pillow` | ✗ → `pip install numpy pillow` |
+| `ffmpeg` / `ffprobe` | ✗ → `sudo apt-get install -y ffmpeg` (یا `pip install imageio-ffmpeg`؛ ffprobe جدا لازم است) |
+| `hyperframes@0.8.157` در `~/reel-sadiqeen` | ✗ → `mkdir -p ~/reel-sadiqeen && cd ~/reel-sadiqeen && npm init -y && npm install --no-audit --no-fund hyperframes@0.8.157 playwright@1.64.1 && npx hyperframes browser ensure` |
+
+`scripts/env.sh` همین بررسی‌ها را هر جلسه انجام می‌دهد و دستور نصب هر چیز کم را چاپ می‌کند.
+
+## خطوط قرمز اسکیل
+
+بدون گوینده (مگر به‌درخواست)، بدون منبع/درجهٔ ساختگی، متن آیه و حدیث عیناً از ورق با اعراب، حداکثر ۶۰ ثانیه،
+`verify.py` پیش از رندر، و رنگ‌ها فقط کاغذ/سبز/طلایی — هرگز قرمز.

@@ -1,0 +1,80 @@
+{
+  "skill_name": "maalsadiqeen-reel",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "این سه ورق صفحهٔ «مع الصادقین» است. یک ریل حرفه‌ای ۴۵ ثانیه‌ای از روی آن‌ها بساز؛ بدون گوینده، تلاوت اشکالی ندارد.",
+      "files": [
+        "evals/files/sheet-1.jpg",
+        "evals/files/sheet-2.jpg",
+        "evals/files/sheet-3.jpg"
+      ],
+      "expected_output": "A brief classifying the sheets as archetype A (verse 9:119 + hadith of Imam al-Ridha + grading), a spec using hook/verse/contrast/answer/proof/cta, recitation ar.mahermuaiqly with word cues, mix without narration, verify.py passing with snapshots inspected, a 45 s 1080x1920 MP4, cover, beat sheet and a Persian summary.",
+      "expectations": [
+        "Reads all three images before writing any copy and transcribes the verse, the hadith, the two references and the Majlisi comment verbatim",
+        "Chooses archetype A and explains the hinge word «مَعَ» as the turn of the reel",
+        "Uses no TTS/human narration; includes Quran recitation for 9:119 synced to word cues",
+        "Runs build_reel.py, mix.py and verify.py (hyperframes check + snapshots) before rendering and reads qc/sheet.jpg",
+        "Final MP4 is 1080x1920, 30 fps, between 36 and 60 seconds, with an AAC audio track at about -15.5 LUFS",
+        "On-screen Arabic is fully vocalised in the verse/hadith/hero lines and the references include ج/ص",
+        "Delivers cover.jpg and a Persian beat sheet and replies in Persian with the scene table and posting advice"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "برای صفحهٔ مع الصادقین یک ریل بساز از این حدیث امیرالمؤمنین(ع): «النَّاسُ أَعْدَاءُ مَا جَهِلُوا» — نهج البلاغة، الحكمة ١٧٢. آیه‌ای در کار نیست.",
+      "files": [],
+      "expected_output": "Archetype B or C spec without a verse: hook, quote (word reveal), contrast, list or hero quote, proof card (no seal because no grading is stated), cta; sound design + bed only; verify passes; render delivered with cover and beat sheet.",
+      "expectations": [
+        "Does not add a recitation or invent a verse; audio is bed + sound design only",
+        "Does not show the «صحيح السند» seal because the sheet states no grading",
+        "Writes a dignified فصيح hook that poses a question or exposes a common misreading, no exclamation marks or emojis",
+        "Uses the quote block with reveal words for the hadith and attributes it «— نهج البلاغة · الحكمة ١٧٢»",
+        "Total duration between 30 and 60 seconds and build_reel.py prints no unresolved WARN",
+        "verify.py passes and the snapshots are inspected before render"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "همان ریل «کونوا مع الصادقین» را با یک هوک جایگزین (نسخهٔ B) و یک برش ۴:۵ برای فید بساز و بگو چطور A/B را بسنجم.",
+      "files": [
+        "evals/files/sheet-1.jpg"
+      ],
+      "expected_output": "A second spec that changes only the hook scene (e.g. «إِذَا كَانَتِ التَّقْوَى فَرِيضَة، فَمَعَ مَنْ أَمَرَكَ اللهُ أَنْ تَكُون؟»), same length, re-verified and rendered; a 4:5 export via export_variants.py; Persian advice: post 3–4 days apart or use Trial Reels, compare average watch time and sends/reach.",
+      "expectations": [
+        "Changes only scene 1 of the spec and keeps the total duration identical to the master",
+        "Re-runs build, mix and verify for the variant instead of editing the rendered video",
+        "Produces the 4:5 feed version with crop=1080:1350:0:220 via export_variants.py --feed",
+        "Explains A/B measurement in Persian: spacing posts 3–4 days or Trial Reels, judging by average watch time and sends per reach, not raw views"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "به مناسبت ولادت امام رضا(ع) (۱۱ ذی‌القعده) یک ریل ۳۵ ثانیه‌ای کوتاه در سبک مع الصادقین می‌خواهم؛ متن را خودت انتخاب کن اما منبع بده.",
+      "files": [],
+      "expected_output": "Archetype E: title card with the date and the Imam's name, a quote with a sourced hadith of/about Imam al-Ridha, a hero line, a cta with a greeting line; the assistant flags that the chosen text must be verified by the user if it cannot confirm the reference, and does not fabricate a grading.",
+      "expectations": [
+        "Uses the title block first with the date in Arabic-Indic digits and the Imam's name with honorific",
+        "States the reference for the chosen text and explicitly flags any uncertainty instead of inventing a chain grading",
+        "Keeps the reel at about 35 seconds and ends with a greeting line plus the brand card",
+        "Audio: no narrator; recitation only if an ayah is actually included; otherwise bed and sound design",
+        "Runs verify.py and inspects snapshots before rendering"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "اسپک assets/examples/sadiqeen-9-119.silent.json را به ریل تبدیل کن (بدون تغییر متن)، صدا را بساز، verify را رد کن و اگر رندر ممکن است رندر کن؛ در پایان پست‌کیت و بیت‌شیت فارسی بده.",
+      "files": [
+        "assets/examples/sadiqeen-9-119.silent.json"
+      ],
+      "expected_output": "build_reel.py → project with 6 scenes / 45 s and no WARN; recite.py (or a user-supplied recitation file when the CDN is unreachable) + mix.py at −15.5 LUFS; verify.py pre-render passes and qc/sheet.jpg is inspected; render + verify --render when the toolchain exists, otherwise the exact missing pieces are reported; post_kit.py post.md and beat_sheet.py --lang fa delivered; Persian summary.",
+      "expectations": [
+        "Does not edit any Arabic copy of the spec; only tooling is run",
+        "Runs build_reel.py, mix.py and verify.py in that order and reads the warnings",
+        "Handles a missing recitation download gracefully (asks for a file / --from-files) instead of shipping without the verse audio silently",
+        "Produces post.md with the caption, pinned references comment and hashtags via post_kit.py",
+        "Produces the Persian beat sheet and reports what was and was not verified"
+      ]
+    }
+  ]
+}

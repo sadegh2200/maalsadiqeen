@@ -40,6 +40,11 @@ mkdir -p ~/.agents/skills && cp -r maalsadiqeen-reel-maker/maalsadiqeen-reel ~/.
 npx skills add sadegh2200/my --skill maalsadiqeen-reel
 ```
 
+در همین مخزن، اسکریپت `install-skill.sh` (ریشهٔ مخزن) همین کار را برای هر سه مسیر انجام می‌دهد و کپی را
+بایت‌به‌بایت با نسخهٔ مادر مقایسه می‌کند: `bash install-skill.sh` برای نصب/همگام‌سازی و
+`bash install-skill.sh --check` برای بررسی. نسخهٔ مادر همان `maalsadiqeen-reel-maker/maalsadiqeen-reel/` است؛
+فقط آن را ویرایش کنید و اسکریپت را دوباره اجرا کنید.
+
 پیش‌نیازها را `scripts/env.sh` خودش بررسی می‌کند و دستور نصبِ هر چیزِ کم را چاپ می‌کند: Python ≥ 3.9 با
 `numpy` و `pillow`، `ffmpeg/ffprobe`، Node ≥ 22 و `hyperframes@0.8.157` (+ Chrome Headless Shell با
 `npx hyperframes browser ensure`). برای موتور جایگزین: `scripts/setup_studio.py` (Remotion 4).
