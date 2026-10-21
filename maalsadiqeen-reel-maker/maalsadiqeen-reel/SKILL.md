@@ -1,173 +1,323 @@
 ---
 name: maalsadiqeen-reel
-description: Use when the user wants a reel / short vertical video (ریل، ویدیو، ریلز، reel, Reels) for the Instagram page «مع الصادقين» (@maalsadiqeen, maalsadiqeen), or shares the page's branded Arabic sheets (ورق، پست، پوستر، کارت — cream paper, green arc, tree logo) carrying a verse, ḥadīth, sanad grading, scholar quote, question or occasion and wants them turned into a 30–60 s faceless video — including re-cuts, A/B hooks, 4:5 feed variants, covers, beat sheets, captions, "same style as the Ṣādiqīn reel", or any Arabic religious short-form video in this page's style. Triggers even without an āyah on the sheets and even if the user only asks for a hook, a caption or a QC of an existing cut.
+description: Use when the user wants a reel / short vertical video (ریل، ویدیو، ریلز، reel, Reels) for «مع الصادقين» (@maalsadiqeen), or hands over any Arabic religious text — a page of a book, a lecture transcript, a forwarded message, a question, a long article — or the page's branded sheets (ورق، پست، پوستر — cream paper, green arc, tree logo) carrying a verse, ḥadīth, sanad grading, scholar quote, question or occasion, and wants it turned into a 30–60 s faceless reel. Triggers on «این متن را ریل کن», «از این ورق ریل بساز», "same style as the Ṣādiqīn reel", and even when the user only asks for a scenario, a hook, a caption, the three-platform copy, a comment bank, or a QC of an existing cut.
 license: Proprietary — made for the maalsadiqeen page; third-party assets per assets/sfx/CREDITS.md and font licences (OFL).
 metadata:
   title: Maalsadiqeen Reel Maker — ریل‌ساز مع الصادقین
-  version: 2.0.0
+  version: 3.2.0
   brand: maalsadiqeen
-  output: 1080x1920 MP4 (30 fps, ≤60 s) + cover + beat sheet + post kit
-  requires: python3 ≥3.9 (numpy, pillow), ffmpeg/ffprobe, node ≥22 + hyperframes 0.8.x (default engine) — or node + remotion 4 (alternate engine)
+  output: 1080x1920 MP4 (30 fps, ≤60 s) + IG/FB/X captions + 7-comment bank + schedule (cover only on request)
+  requires: python3 ≥3.9 (numpy, pillow), ffmpeg (ffprobe optional), node ≥22 + hyperframes 0.8.x for the render — or node + remotion 4 (alternate engine)
 ---
 
-# Maalsadiqeen Reel Maker (`maalsadiqeen-reel`) — from the page's sheets to a finished reel
+# Maalsadiqeen Reel Maker (`maalsadiqeen-reel`) — from any text to a finished reel
 
-Turn one or more branded sheets of «مع الصادقين» into a dignified, text-led, viral-ready vertical video:
-read the sheets, decide the story, write فصيح Arabic copy, compile a project from a JSON spec, build the
-soundtrack (recitation + sound design, no narrator), verify with snapshots, render, and hand over master +
-cover + beat sheet + post kit with a Persian summary. Everything the generic video / motion / Reels skills
-taught for this page is encoded here as scripts and references — do not re-derive it.
+You are not converting a poster into a video any more. You are turning **any text** into a small,
+calm, sourced piece of knowledge: read it, write a brief, offer **four scenarios**, let the user
+choose, then build **one** reel and hand over its publishing kit.
+
+The whole skill is three ideas:
+
+1. **Text-first.** The input can be anything — a chapter, a transcript, a screenshot, a question. The
+   contract for reading it is `references/text-intake.md`.
+2. **A gate before the build.** Four complete, scored scenarios; the user picks; nothing is rendered
+   before that. `references/scenarios.md`.
+3. **A machine-checked voice.** The brand's wording rules are enforced by scripts, not by memory:
+   `copy_lint.py`, `captions.py`, `comments.py`, `social_kit.py`, all against `config/brand.json`.
 
 ## Non-negotiables
 
-1. **No human or synthetic narrator** unless the user asks for one in this conversation. Qurʾan recitation
-   is welcome when the reel contains an āyah. The reel must make full sense muted.
-2. **≤ 60 s, 9:16 1080×1920, 30 fps**; default length 45 s (36–50 s window).
-3. **Brand = paper, green, gold** (`references/brand.md`, the single source of truth for both engines).
-   No new colours, fonts or effects; never red.
-4. **Copy is فصيح, متين, fully vocalised** where sacred/quoted (`references/arabic-copy.md`). Never alter
-   or "repair" a verse/ḥadīth from memory; quote the sheet, flag unreadable spots to the user.
-5. **No invented references or gradings.** No source on the sheet → no proof block (say so).
-6. **`verify.py` must pass before rendering** and the snapshots must be looked at with your own eyes.
-7. Reply to the user in Persian; on-screen copy in Arabic (Persian only if explicitly requested).
+1. **No human or synthetic narrator** unless the user asks in this conversation. Recitation is
+   welcome when a verse is on screen. The reel must make sense muted.
+2. **9:16 1080×1920, 30 fps, ≤ 60 s.** Default **40 s** (30–50 window). There is no 90-second version.
+3. **Brand = paper, green, gold** (`references/brand.md`) **and the voice in
+   `references/brand-voice.md`**: scholarly, calm, classical Arabic, never clickbait, never dialect,
+   no emoji, no exclamation marks. The reader is `references/audience.md`.
+4. **Three layers, always legible:** نصّ (verbatim + reference) · شرح (named scholar) · استنباط
+   (ours, marked). Never dressed as one another.
+5. **No invented reference or grading.** No source → no proof block; say so in the summary.
+6. **No building before the user chooses a scenario.** `reel.py build --choose …` is the only door.
+7. **Gates are green before delivery:** `copy_lint` 0 failures, three captions valid, seven comments
+   valid, `verify.py` 0 failures. A red `validation.md` is not shipped.
+8. **Reply in Persian; on-screen copy in Arabic.** No cover image unless the user asks (`--cover`).
+9. **Density is budgeted, not decorated.** A long text is not solved by putting more on screen: one
+   `paragraph` / `definition` / `qa` / `steps` / `timeline` / `compare` is the anchor, the others stay
+   short, and the whole reel stays inside ~2.3 words per second (hard 2.9). If a paragraph and a
+   definition say the same thing, one of them is cut.
+10. **The ending asks for one thing — usually nothing.** At most one invitation, and only when the
+    text earns it: a save for a definition or a reference, a send to the person who asked, and **no
+    invitation at all** for an occasion, a life, an objection or a ruling. «أَرْسِلْهَا لِمَنْ تُحِبّ»
+    is forbidden — `copy_lint` fails it. The brand card closes the reel in silence.
 
-## Engines — one skill, one default
+## v3 in one picture
 
-| engine | when | entry |
-|---|---|---|
-| **HyperFrames** (default) | everything: verse + ḥadīth, ḥadīth only, concept, FAQ, occasion, objection | this file |
-| Remotion studio (alternate) | ḥadīth + numbered traits + long rijāl chain carousels (animated chain, «ثقة» stamps, seal); user already has `~/reel-studio` or asks for Remotion; HyperFrames cannot run | `references/remotion-studio.md` + `remotion-schema.md` |
-
-Both engines share the brand, the copy rules, the hook scorer, the post kit and the loudness target.
-Do not mix them inside one reel.
-
-## Workflow (HyperFrames engine)
-
-All paths come from `scripts/env.sh`: `$SKILL_DIR` (this folder), `$REEL_WORK` (projects, default
-`./reel-work`), `$REEL_DELIVER` (finished files, default `./reel-deliver`), `$HF_WORKDIR` (where
-`node_modules/hyperframes` lives, default `~/reel-sadiqeen`). Override any of them before sourcing.
-
-### 0 · Toolchain (every session on an ephemeral machine)
-
-```bash
-source <path-to-this-skill>/scripts/env.sh          # prints missing pieces + exact install commands
-S="$SKILL_DIR/scripts"; W="$REEL_WORK/<slug>"; D="$REEL_DELIVER"; mkdir -p "$W"
 ```
-Fix whatever it reports (`references/troubleshooting.md`). Never run two renders or checks at once.
-
-### 1 · Read the sheets → brief (`references/content-analysis.md`)
-
-Open every attached image. Transcribe sacred text, references, scholar comments, the page's framing.
-Classify (A verse+ḥadīth+grading · B ḥadīth only · C scholar/concept · D FAQ · E occasion · F objection)
-and write the one-sentence idea, hinge word, surprise, authority, take-away → `$W/brief.md`. If the sheets
-hold two ideas, propose two reels. Research briefly only when it adds value (verifying a reference, a
-recitation choice); cite it in the brief. Do not scrape Instagram.
-
-### 2 · Hook, then scenario = spec (`references/hooks-ar.md`, `narrative.md`, `blocks.md`)
-
-```bash
-python3 $S/hook_score_ar.py "hook 1" "hook 2" "hook 3" --out $W/hooks.json   # one question, one number/condition, one stakes hook; best ≥ 65 (aim ≥ 80)
-python3 $S/new_spec.py --archetype A --duration 45 --out $W/spec.json [--recitation 9:119]
-```
-Replace every «…» in the spec with final copy. Rules of thumb: hook word on screen by 1.2 s; at most one
-`<em>` hinge word per line; ≤ 70 words on screen in total; one hero line; CTA ≥ 6.4 s with
-«أَرْسِلْهَا لِمَنْ تُحِبّ» and the brand card. Keep explicit `cues` only where the audio dictates them
-(verse words); otherwise let the builder pace by reading speed.
-
-With a verse, fetch the recitation first and size the verse scene from it:
-```bash
-python3 $S/recite.py 9:119 --out $W/recite.wav       # prints duration → verse scene ≥ duration + 1.6 s; offline: --from-files a.mp3
-python3 $S/cues.py $W/recite.wav --words 8 --offset <verse scene start> --json   # → scenes[verse].cues.words
+text / sheets / question
+        │  intake.py            normalise · quotes · references · shape
+        ▼
+   brief.md  (one idea, layers, life-impact)
+        │  scenarios.py         4 scenarios · 8 angles · scored
+        ▼
+   scenarios.md + preview/     ──►  ⛔ THE GATE: user picks «۲» or «۲ و ۴»
+        │  reel.py build --choose
+        ▼
+   spec.json → project → mix → verify → [render] → kit
+        │
+        ▼
+   MP4 · captions/ (IG·FB·X) · comments.md · publish.md · validation.md
 ```
 
-### 3 · Build
+## Workflow
+
+Paths come from `scripts/env.sh`: `$SKILL_DIR`, `$REEL_WORK` (default `./reel-work`),
+`$REEL_DELIVER` (default `./reel-deliver`), `$HF_WORKDIR`. Override before sourcing.
+
+### 0 · Toolchain
 
 ```bash
-python3 $S/build_reel.py $W/spec.json --out $W/project    # → index.html + spec.resolved.json; read every WARN
+bash <skill>/scripts/bootstrap.sh --check     # what is missing, nothing is installed
+bash <skill>/scripts/bootstrap.sh            # install (pip --user, npm in $HF_WORKDIR)
+source <skill>/scripts/env.sh
+S="$SKILL_DIR/scripts"; W="$REEL_WORK/<slug>"; D="$REEL_DELIVER"
 ```
-Fix WARNs by editing the spec, never the generated HTML (except a one-off last resort).
 
-### 4 · Soundtrack (`references/audio.md`)
+`ffprobe` is optional since v3: `_common.media_duration()` falls back to `ffmpeg -i`. A render still
+needs node ≥ 22 + hyperframes. **Missing toolchain never blocks the plan, the captions or the kit** —
+only the render (see “degrade honestly”).
+
+### 1 · Intake — any text into a brief (`references/text-intake.md`)
 
 ```bash
-cp $W/recite.wav $W/project/assets/audio/recite.wav 2>/dev/null; python3 $S/mix.py $W/project --dry-run   # review the event list
-python3 $S/mix.py $W/project        # bed + recitation + auto sound design → assets/audio/mix.wav, prints LUFS (target −15.5)
+python3 $S/reel.py intake <file|dir|-> --slug <slug>      # text, a folder, or stdin
+python3 $S/reel.py intake --slug <slug> --sheets a.jpg b.jpg   # sheets/images too
 ```
-Narration only on explicit request: produce stems, `tighten.py`, add them to `audio.stems`, `mode: narrated`.
 
-### 5 · Verify — the pre-render gate (`references/qc.md`)
+`intake.py` writes `input.txt`, `brief.seed.json`, `brief.seed.md` (Persian) and flags:
+a ḥadīth with no source, a quote with no reference, unreadable words, a text that needs a series.
+Then **you** write `brief.md` in Persian using the template in `text-intake.md` §7 — one idea, the
+three layers, the life-impact, the shape. Ask at most **three** questions, in one message.
+
+### 2 · Plan — four scenarios, then stop (`references/scenarios.md`)
 
 ```bash
-python3 $S/verify.py $W/project     # pacing · html · hyperframes check · snapshots → qc/sheet.jpg (exit 1 on any FAIL)
+python3 $S/reel.py plan <slug>                 # scaffolds scenarios.json with 4 angles
+# fill every «…» — hooks, scenes, sources, life_impact, why_fa
+python3 $S/reel.py plan <slug> --finalize      # validate + score + scenarios.md + preview → GATE
 ```
-Open `$W/project/qc/sheet.jpg`. Check typography, clipping, gold emphasis, seal, watermark, brand card.
-Iterate spec → build → mix → verify until 0 failures and the frames look right. If the cover frame
-(hero + 0.9 s) would not stop a scroll, rewrite the hero/hook now, not after rendering. When the user is
-in the loop, show the sheet and ask "render now, or what changes?" — unless they asked for a finished file
-without review.
 
-### 6 · Render (3.5–6 min, background process)
+`plan` reads the intake: a text over ~700 words (or one the intake wants to split) is scaffolded from
+G–L, everything shorter from A–F. Change the pattern if the material asks for it, and say why in
+`why_fa`. For a long-text scenario, replace the prose blocks with real sentences and budget them with
+the formulas in `blocks.md` §Long form — a `«…»` left in a `paragraph` fails `copy_lint`.
+
+Present the table (angle, promise, duration, cost, score), open `preview.html`, and ask which
+one. **Do not build.** If the user says «همه», build them as separate deliveries, one at a time.
+
+### 3 · Build — one scenario (`references/narrative.md`, `blocks.md`)
 
 ```bash
-bash $S/render.sh $W/project $D/<slug>.mp4                        # check → render --workers 1 → ffprobe; one render at a time
-python3 $S/verify.py $W/project --render $D/<slug>.mp4 --no-check  # 1080×1920 · 30 fps · duration · AAC · LUFS · true peak
+python3 $S/reel.py build <slug> --choose 2 [--preset minimal|standard|full] [--render]
 ```
-Grab 4–6 frames from the MP4 with ffmpeg and compare them to the snapshots (a blank render = `dir=rtl`
-on `<html>` or missing fonts).
 
-### 7 · Deliverables (`references/publish.md`)
+This runs, in order: compile `spec-2.json` → `copy_lint` (aborts on failures) → `build_reel.py`
+(`project-2/`) → `mix.py` → `verify.py --light --source-spec` → `social_kit.py` into
+`$REEL_DELIVER/<slug>-2/kit`. With `--render` and a working toolchain it also renders and re-verifies.
+
+If a verse is on screen, fetch the recitation **before** the build and size the verse scene from it:
 
 ```bash
-python3 $S/export_variants.py $D/<slug>.mp4 --out $D --name <slug> --spec $W/project/spec.resolved.json [--feed] [--audio]
-python3 $S/beat_sheet.py $W/project --spec $W/spec.json --out $D/<slug>-beat-sheet.md --lang fa
-python3 $S/post_kit.py $W/spec.json --hooks $W/hooks.json -o $D/<slug>-post.md      # caption · pinned references · alt hooks · checklist
+python3 $S/recite.py 9:119 --out $W/recite.wav
+python3 $S/cues.py $W/recite.wav --words 8 --offset <verse start> --json
 ```
-Present the MP4. In the Persian summary give: idea + archetype, the scene table (time, copy, source),
-audio plan, what was verified (check / snapshots / LUFS / duration), posting advice (cover, caption,
-A/B or Trial Reels, metrics to watch) and every flagged uncertainty (unreadable word, missing reference).
+
+Fix `spec.json` and re-run; never hand-edit the generated `index.html`. If `copy_lint` reports a
+tashkeel, spelling or register problem and the fix is not obvious, open `arabic-editor`; if it reports
+a seal or a reference, open `hadith-sanad`.
+
+### 4 · Kit — the publishing half (`platforms.md`, `comments.md`)
+
+Already produced by `build`; regenerate alone with:
+
+```bash
+python3 $S/reel.py kit <slug> --id 2 --preset standard
+```
+
+It writes `captions/{instagram,facebook,x}.txt`, `captions.json`, `alt-text.txt`, `comments.md`
+(seven slots, scheduled in Baghdad time + UTC), `publish.md` (windows, cross-post order, first-hour
+checklist, 48-hour review) and `validation.md`. Write better prose if you like, then validate it:
+
+```bash
+python3 $S/captions.py $W/spec-2.json --out $D/<slug>-2/kit/captions --texts captions.json
+```
+
+A caption that breaks a limit is written to `captions/_FAILED/` and the command exits 1.
+
+### 5 · Render (3.5–6 min, one at a time)
+
+```bash
+bash $S/render.sh $W/project-2 $D/<slug>-2.mp4
+python3 $S/verify.py $W/project-2 --render $D/<slug>-2.mp4 --no-check
+```
+
+### 6 · Deliver
+
+```bash
+python3 $S/export_variants.py $D/<slug>-2.mp4 --out $D --name <slug>-2 \
+    --spec $W/spec-2.json --srt --alt-text [--cover] [--feed] [--square] [--audio]
+python3 $S/beat_sheet.py $W/project-2 --spec $W/spec-2.json --out $D/<slug>-2-beat-sheet.md --lang fa
+```
+
+Present the MP4 and the kit. In the Persian summary: the idea and the angle the user chose, the scene
+table, what was verified, the posting time and the first-hour checklist, and every uncertainty
+(missing reference, unverified ḥadīth, unreadable word).
 
 ## Decision points
 
 | situation | do |
 |---|---|
-| sheets contain an āyah | archetype A (or E); recitation `ar.mahermuaiqly`; verse words cued from `cues.py` |
-| no āyah, a ḥadīth with reference | B; `quote` with `reveal: words`; proof cards without seal unless a grading is stated |
-| only a scholar's point / concept | C; the contrast block carries the turn; hero = the text that settles it |
-| question-type sheet | D; answer as `list` (≤ 3) or `quote`; keep the answer scene ≥ 8 s |
-| date / person / occasion | E; `title` card first; no contrast; final = greeting line |
-| objection / شبهة | F; calm tone, quote the objection neutrally, never name opponents |
-| ḥadīth + numbered traits + long chain carousel | consider the Remotion engine (`references/remotion-studio.md`) |
-| user asks for narration | narrated mode: stems + `tighten.py` + `cues.py --lines`; target −14 LUFS; Persian runs 20 % longer |
-| user asks for a variant | A/B: change scene 1 only; feed: `export_variants.py --feed`; Persian version: translate copy, shrink sizes / `nowrap` |
-| user wants > 60 s | decline politely; propose a two-part series with the same opening signature |
-| toolchain missing / render impossible | still deliver brief + spec + beat sheet + post kit (+ snapshots if `check` runs) and the exact commands that remain |
+| text with a verse **and** a ḥadīth | archetype A; recitation `ar.mahermuaiqly`; verse scene ≥ recitation + 1.6 s |
+| ḥadīth with a reference, no verse | B; `quote` with `reveal: words`; proof cards without a seal unless a grading is stated |
+| a concept / a scholar's point | C; the contrast block carries the turn |
+| a question from a follower | D; answer as `list` (≤3) or `quote`; answer scene ≥ 8 s |
+| a date, a person, an occasion | E; `title` card first; final = greeting line |
+| an objection or a claim | F; state it fairly, answer from the text, never name a group |
+| text longer than ~1800 words | series (`references/series.md`); one reel per idea |
+| 700–1800 words, one idea | one reel from **G–L** (`narrative.md`); one dense block carries the prose |
+| the reel turns on a word | H/G with `definition`; the term is the only display line |
+| the text gives conditions or acts | I with `steps`; heads are «أَوَّلًا/ثَانِيًا», not sentences |
+| a life, a chain, a history | J with `timeline`; dates written for the ear, Arabic-Indic digits |
+| two readings, then a verdict | K with `compare`; the verdict is the text's, not ours |
+| a follower's long question | L with `qa`; answer in sentences, then prove it |
+| only one idea but a long text | one reel; the caption carries what the screen cannot |
+| user asks for a cover | `--cover` (never by default) |
+| user asks for > 60 s | decline; propose a two-part series with the same opening |
+| user asks for narration | narrated mode: stems + `tighten.py` + `cues.py --lines`; target −14 LUFS |
+| user asks for an A/B | `scenarios.py variant … --hook …`; change scene 1 only |
+| toolchain missing | still deliver brief + scenarios + spec + kit, and print the exact commands that remain |
+
+## Two palettes, one voice
+
+`config/brand.json → themes` holds **main** (`النهار`, cream paper — the default) and **mourning**
+(`ليلُ العزاء`, warm charcoal `#0e0f0e`, ivory text, muted gold, inverted logo). They are the same
+layout, type and motion; only the tokens change.
+
+```bash
+python3 scripts/reel.py build <slug> --choose 2 --theme mourning   # a Muharram / Ṣafar reel
+python3 scripts/build_reel.py spec.json --out "$REEL_WORK/x" --theme mourning   # or per build
+```
+
+`spec.theme` (set by `scenarios.compile_spec` from the brand default) is the third way. `verify.py`
+prints the palette and its contrast. For the dark palette: no red, no pure black, no pure white — see
+`references/brand.md` § «Two palettes». A mourning reel does not change its *voice*: the same calm
+scholarly register, the same sources, and — per rule 10 — no invitation.
+
+## Long text, one screen
+
+When the input is 700–1800 words and one idea, the reel is still 30–60 s. The prose blocks are how the
+argument fits:
+
+| need | block | ceiling |
+|---|---|---|
+| a passage of explanation | `paragraph` | 3–4 sentences, ≤ 60 words |
+| what a word means | `definition` | term + 3 sentences + one note |
+| conditions, an ordered practice | `steps` | 4 steps × 12 words |
+| a life, a chain, a history | `timeline` | 4 events |
+| two readings, then the verdict | `compare` | 2 × 3 points |
+| a real question answered in full | `qa` | 5 sentences |
+
+Rules that keep it watchable: one sentence per reveal; every prose block right-aligned Naskh with a
+gold margin rule (no bullets on prose); a scene is budgeted as
+`0.30 × words + 0.55` per sentence, never shorter; and the rest of the reel returns to the short-form
+blocks. Two prose blocks that both explain the same thing are one block too many — see
+`references/blocks.md` §Long form for the exact formulas.
+
+## The build reference
+
+**Engines.** HyperFrames 0.8.x is the default and covers everything. Remotion studio is the alternate
+for animated sanad chains and long rijāl carousels (`references/remotion-studio.md`); the brand, copy,
+hook scorer and LUFS target are shared. Never mix engines in one reel.
+
+**Blocks** (`references/blocks.md`): fifteen blocks in two families. Short form — `hook`, `verse`,
+`contrast`, `answer`, `proof`, `cta`, `quote`, `list`, `title`. Long text — `paragraph`, `definition`,
+`steps`, `timeline`, `compare`, `qa`. The builder fits Arabic type, paces short lines at ≥ 1.15 s +
+0.26 s/word and prose at ≥ 1.80 s + 0.30 s/word, and writes `spec.resolved.json` with every cue.
+
+**Sound** (`references/audio.md`): bed + recitation + automatic sound design derived from the cues;
+no voice by default. Target −15.5 LUFS (narrated: −14). `mix.py --dry-run` prints the event list;
+`--allow-missing-recitation` (used by `reel.py build`) keeps mixing when the recitation cannot be
+fetched and says the result is **not publishable**.
+
+**QC** (`references/qc.md`): `verify.py` checks spec/pacing, `index.html` sanity, hyperframes check,
+snapshots, and (post-render) 1080×1920 · 30 fps · duration · AAC · LUFS · true peak. v3 flags:
+`--light` (skip hyperframes + snapshots), `--no-audio` (no ffmpeg), `--source-spec` (run `copy_lint`
+inside QC), `--kit` (read a kit's `validation.md`).
+
+**Degrade honestly.** Without ffmpeg the build writes a silent placeholder and says so; without
+node/hyperframes it stops before the render and prints the command. It never calls a placeholder a
+master.
+
+## The two in-house tools beside the pipeline
+
+| skill | when | what it does |
+|---|---|---|
+| `arabic-editor` | before any copy goes on screen, and whenever `copy_lint` reports tashkeel, spelling or register | four passes — register, orthography, tashkeel, punctuation/line breaks — plus `ar_copycheck.py` |
+| `hadith-sanad` | before a ḥadīth, a grading or a `proof` seal | records متن/سند/تخريج, validates the citation, and refuses a seal without a stated grading |
+
+They are first-party (`skills/` in the repo root of this skill's parent), installed beside this skill
+by `install-skill.sh`, and they never replace `copy_lint` — they explain what it found.
+
+## Companion skills (installed beside this one)
+
+Four third-party skills are vendored in `vendor/skills/` and installed in `.claude/skills/`,
+`~/.claude/skills/` and `~/.agents/skills/`. **This skill is always the pipeline**; the companions are
+reference material and tools.
+
+| skill | use it for | guardrail |
+|---|---|---|
+| `skill-creator` | editing this skill, writing evals, validating frontmatter, packaging | not for producing reels |
+| `ig-reel` | a second opinion on Reel structure, 26 hook formulas, beat-sheet math | English-first; score Arabic hooks with `scripts/hook_score_ar.py`, never its `hookscore.py` |
+| `virat-design` | static frame / cover / carousel art direction when asked | its palette and Jakarta/Inter never override the paper/green/gold and Amiri/Kufi/Naskh |
+| `instagram-growth` | reach/sends/watch-time diagnosis, eligibility, Trial Reels | WoopSocial references are inert; use native Insights; FB/X rules live in `references/platforms.md` |
+
+Details, sources and rejected alternatives: `vendor/skills/README.md`.
 
 ## Files
 
 | path | purpose |
 |---|---|
-| `scripts/env.sh` | paths (`SKILL_DIR`, `REEL_WORK`, `REEL_DELIVER`, `HF_WORKDIR`) + toolchain check — source it first |
-| `scripts/hook_score_ar.py`, `scripts/post_kit.py`, `scripts/extract_brand.py` | shared tools (both engines): Arabic hook scoring; caption / pinned comment / checklist; palette + logo extraction from a card |
-| `scripts/new_spec.py`, `scripts/build_reel.py` | archetype scaffolds A–F; spec → HyperFrames project (blocks hook, verse, contrast, answer, proof, cta, quote, list, title; Arabic font fitting; reading-speed cues) |
-| `scripts/recite.py`, `scripts/cues.py` | recitation download/trim (or `--from-files`); word/line onset detection |
-| `scripts/mix.py`, `scripts/gen_bed.py`, `scripts/tighten.py` | soundtrack: bed, recitation, auto sound design, ducking, mastering; narration tightening |
-| `scripts/verify.py`, `scripts/render.sh` | QC gates (pre/post render); check + render wrapper |
-| `scripts/export_variants.py`, `scripts/beat_sheet.py` | cover, 4:5, 1:1, audio stem; Persian/Arabic/English beat sheet |
-| `scripts/setup_studio.py`, `validate_content.py`, `plan.py`, `make_audio.py`, `render.py` | Remotion engine only (see `references/remotion-studio.md`) |
-| `references/brand.md` | tokens, typography, grid, motion personality, tone — for both engines |
-| `references/content-analysis.md` | reading the sheets, classification, brief template |
-| `references/hooks-ar.md`, `references/narrative.md` | 12 Arabic hook formulas + scoring routine; archetypes A–F with timings; A/B rules |
-| `references/arabic-copy.md`, `references/blocks.md` | register, quoting, tashkeel checklist, line budgets; spec format and every block's fields and cues |
-| `references/audio.md`, `references/motion.md` | soundtrack design rules; HyperFrames/GSAP rules and choreography |
-| `references/qc.md`, `references/publish.md`, `references/troubleshooting.md` | gates & defects; posting playbook, anti-patterns, cold start, flop diagnosis; toolchain fixes |
-| `references/remotion-studio.md`, `references/remotion-schema.md` | the alternate engine: workflow, design tokens, QA checklist; `content.json` / `plan.json` schema |
-| `assets/examples/` | `sadiqeen-9-119.silent.json` (archetype A, the delivered 45 s reel — gold standard), `hadith-only.json` (B/C, 41 s), contact sheets, beat sheet; `shiatuna/`, `variant-bayan/` for the Remotion engine |
-| `assets/{fonts,brand,sfx,gsap.min.js,hyperframes.json}` | everything `build_reel.py` copies into a project; `assets/remotion-template/` is the Remotion studio |
-| `evals/evals.json`, `evals/rubric.md`, `evals/files/` | 5 test prompts (2 need the page's private sheets — see `evals/files/README.md`) + grading rubric |
+| `config/brand.json` | handle, defaults, **themes (main · mourning)**, CTAs and their endings, hashtags, limits, windows, questions, comment slots, forbidden lists — the runtime source of truth |
+| `config/content-log.json` | the last reels (diversity guard + learning loop); append, never delete |
+| `scripts/reel.py` | front door: `intake` · `plan` · `build` · `kit` · `status` · `log` · `series` |
+| `scripts/intake.py` | any text/sheets → `input.txt` + `brief.seed.{json,md}` + flags |
+| `scripts/scenarios.py` | `init` · `validate` · `score` · `render` · `select` · `variant` · `compile` |
+| `scripts/copy_lint.py` | on-screen verbal gate (placeholders, forbidden, dialect, tashkeel, seals, layers, budget) |
+| `scripts/captions.py`, `scripts/comments.py`, `scripts/social_kit.py` | IG/FB/X captions + validation; seven-slot comment bank + schedule; the whole kit in one command |
+| `scripts/preview_frames.py` | three frames per scenario (Pillow + raqm) or a self-contained `preview.html` |
+| `scripts/bootstrap.sh`, `scripts/env.sh` | toolchain check/install; paths |
+| `scripts/build_reel.py`, `scripts/mix.py`, `scripts/verify.py`, `scripts/render.sh` | spec → project; soundtrack; QC; render wrapper |
+| `scripts/retime.py` | fits each long-text block to the copy it carries, then re-flows the reel (`--write`, `--target`) |
+| `scripts/recite.py`, `scripts/cues.py` | recitation download/trim; word onsets |
+| `scripts/hook_score_ar.py` | 7-dimension hook scorer (dignity included); `--profile classic` for the old weights |
+| `scripts/export_variants.py`, `scripts/beat_sheet.py`, `scripts/post_kit.py` | SRT · alt text · optional cover/feed/square/audio; Persian beat sheet; legacy single-file post kit |
+| `references/brand-voice.md`, `audience.md` | the verbal identity and the reader — read before writing any copy |
+| `references/text-intake.md`, `scenarios.md`, `series.md` | input contract; the four-scenario gate; splitting a long text |
+| `references/platforms.md`, `comments.md` | IG/FB/X rules and skeletons; the seven comment slots and moderation |
+| `references/brand.md`, `content-analysis.md`, `arabic-copy.md`, `blocks.md`, `narrative.md`, `hooks-ar.md`, `audio.md`, `motion.md`, `qc.md`, `publish.md`, `troubleshooting.md` | visual tokens; reading the sheets; register and line budgets; the fifteen blocks and their timings; archetypes A–L; hook formulas; sound; motion; gates; posting; fixes |
+| `../skills/arabic-editor`, `../skills/hadith-sanad` | the copy editor and the sanad discipline (installed as separate skills) |
+| `references/remotion-studio.md`, `remotion-schema.md` | the alternate engine |
+| `assets/templates/` | `scenarios.example.json` (one fully written scenario), `captions.example.json` (three valid captions) |
+| `assets/examples/`, `assets/{fonts,brand,sfx,gsap.min.js,hyperframes.json}` | the gold-standard reels — `sadiqeen-9-119` (short form), `long-text-sadiq` (a 53.5 s G reel with `paragraph` + `definition` + `qa`) and `ashura-mourning` (the dark palette, an ending with no invitation) — and everything the builder copies into a project |
+| `evals/` | self-contained test prompts, the rubric and the fixture texts |
 
 ## Done means
 
-- `$REEL_DELIVER/<slug>.mp4` passes `verify.py --render` (1080×1920, ≤ 60 s, AAC, LUFS within ±1.2 of target).
-- `<slug>-cover.jpg`, `<slug>-beat-sheet.md`, `<slug>-post.md` exist next to it.
-- Snapshots were inspected; every quoted text matches the sheets; every reference comes from the sheets.
-- The Persian summary states what was built, what was verified, and what the user should check.
+- The user chose the scenario; `scenarios.json` holds four valid, scored options.
+- `copy_lint` 0 failures; `captions` 3/3 valid; `comments` 7/7 valid; `verify` 0 failures.
+- The ending carries **at most one** invitation, and none of the forbidden formulas; a heavy text ends
+  with the verse and the card. `verify.py` names the palette and its contrast.
+- Every ḥadīth passed `hadith-sanad` (`sanad_check.py` 0 errors) and the copy passed `arabic-editor`
+  (`ar_copycheck.py` 0 errors) — or the summary says exactly what is unresolved.
+- The MP4 (1080×1920, ≤ 60 s, AAC, LUFS within ±1.2 of −15.5) plus `captions/`, `comments.md`,
+  `publish.md`, `validation.md` sit in `$REEL_DELIVER/<slug>-<id>/`.
+- Every quoted text matches the source; every reference is real; nothing was invented.
+- The Persian summary says what was built, what was verified, what to check, and when to post.

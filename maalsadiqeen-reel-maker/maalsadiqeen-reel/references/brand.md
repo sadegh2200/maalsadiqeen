@@ -1,7 +1,12 @@
 # Brand system — «مع الصادقين» (@maalsadiqeen)
 
 The page publishes dignified Arabic religious knowledge (Qurʾan, ḥadīth of the Ahl al-Bayt, scholarly
-verification) for an educated Arabic-speaking audience. The video identity is a *moving version of the
+verification) for an educated Arabic-speaking audience.
+
+> **Voice lives elsewhere.** Visual tokens are here; the *verbal* identity — promise, layers, lexicon,
+> honorifics, honour code, the «الأثر في الحياة» block, the approved CTAs and the forbidden list — is
+> `references/brand-voice.md`, and the reader is `references/audience.md`. `config/brand.json` is the
+> machine-readable half of both. The video identity is a *moving version of the
 paper sheets*: cream paper, dark green text, gold accents, a thin green arc with diamonds, an olive
 sprig top-right, the tree logo. Nothing flashy; every motion must feel like ink settling on paper.
 
@@ -14,14 +19,43 @@ sprig top-right, the tree logo. Nothing flashy; every motion must feel like ink 
 | gold | `#957238`, `#cdb078` (gradient end) | emphasis word, underline, rule, seal ring, labels |
 | ink | `#2d2b27`, ink-2 `#5a5650` | prose, attributions, labels |
 | line | `#8aa58f` | arc divider |
-
-Remotion template mapping: `green`, `gold`, `goldSoft`, `ink`, `inkSoft`, `olive` = the tokens above; the
-warning-clause token `maroon` = deep gold-ink `#7a5a24` (emphasis without red).
 | grain | SVG turbulence, opacity 0.085, multiply | paper texture |
 | vignette | radial `rgba(70,52,28,0.17)` | edge focus |
 
+Remotion template mapping: `green`, `gold`, `goldSoft`, `ink`, `inkSoft`, `olive` = the tokens above; the
+warning-clause token `maroon` = deep gold-ink `#7a5a24` (emphasis without red).
+
 Never introduce red, blue, pure black `#000` or pure white `#fff`; never use drop shadows or glows other
 than the gold hero glow.
+
+## Two palettes (`config/brand.json → themes`)
+
+The page has one voice and two lights. Both are the same layout, type and motion; only the tokens change,
+and the renderer picks them up from `spec.theme` (or `--theme`).
+
+| | **main · النهار** | **mourning · ليلُ العزاء** |
+|---|---|---|
+| paper | `#ece6da` (cream) | `#0e0f0e` — warm charcoal, **not** `#000` |
+| text | `#2d2b27` ink on cream | `#efe8d8` ivory on charcoal |
+| sacred text (`.quran`, `.amiri`, `.kufi`) | `#1f4a35` green | `#e8dfcb` warm ivory |
+| accent | `#957238` gold | `#c2a267` muted gold |
+| body contrast | 11.4 : 1 | 15.7 : 1 |
+| grain | multiply, 0.085 | screen, 0.06 |
+| logo | unchanged | inverted to ivory (`filter: brightness(0) invert(1)`) |
+| use | the default, every ordinary day | Muharram, Ṣafar, Ramadan nights, an anniversary of a death |
+
+Rules for the dark palette:
+
+- **No red.** Grief is not a warning colour, and blood-red is a different brand. The only warm tone is
+  the muted gold.
+- **No pure black and no pure white.** `#0e0f0e` and `#efe8d8` keep the paper feeling of the light
+  theme; `#000` on `#fff` would look like a different page.
+- The grain switches to `screen` so the dark surface keeps some texture instead of turning into plastic.
+- Everything else — arc, sprig, gold rule, seal, typography — stays identical. The dark reel should
+  read as the same page at night, not as a different account.
+
+`verify.py` prints the theme and fails if the body contrast drops below 6 : 1 (it also warns if the gold
+falls under 3 : 1, or if the mourning logo is left unfiltered).
 
 ## Typography
 

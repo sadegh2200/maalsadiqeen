@@ -19,14 +19,16 @@ LABELS = {
            "audio": "Audio plan", "ev": "Audio events (auto_sfx)", "src": "Sources cited", "dur": "Duration", "mode": "Audio mode"},
 }
 TEXT_KEYS = ["lead", "line1", "line2", "sub", "label", "lines", "wrong_label", "wrong", "right_label", "right", "line3", "line4",
-             "q1", "q2", "hero", "after", "source", "seal", "cards", "attribution", "text", "items", "title", "kicker", "share", "final"]
+             "q1", "q2", "hero", "after", "source", "seal", "cards", "attribution", "text", "items", "title", "kicker", "share", "final",
+             # v3 long-text blocks
+             "term", "body", "note", "question", "answer", "events", "col_a", "col_b", "verdict", "label_q", "label_a"]
 
 
 def flat(v):
     if isinstance(v, list):
         return " / ".join(flat(x) for x in v)
     if isinstance(v, dict):
-        return " · ".join(str(x) for x in v.values() if x)
+        return " · ".join(flat(x) for x in v.values() if x)
     return str(v)
 
 

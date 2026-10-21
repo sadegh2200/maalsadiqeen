@@ -22,6 +22,8 @@ import argparse, json, os, re, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SKILL = os.path.dirname(HERE)
+sys.path.insert(0, HERE)
+from _common import media_duration  # noqa: E402
 SFX_DIR = os.path.join(SKILL, "assets", "sfx")
 
 
@@ -34,7 +36,10 @@ def run(cmd, **kw):
 
 
 def dur(path):
-    return float(run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", path]).stdout.strip())
+    d = media_duration(path)
+    if d is None:
+        raise SystemExit(f"cannot read the duration of {path} — install ffmpeg/ffprobe")
+    return float(d)
 
 
 def lufs(path):
@@ -100,6 +105,33 @@ def auto_events(res):
             for t in c.get("items", []): ev.append(("pop", t, -20, ""))
         elif ty == "title":
             if "title" in c: ev.append(("sparkle", c["title"], -18, ""))
+        elif ty in ("paragraph", "definition"):
+            for k in ("kicker", "label", "term"):
+                if k in c: ev.append(("click-soft", c[k], -22, ""))
+            for i in range(1, 9):
+                if f"p{i}" in c: ev.append(("click-soft", c[f"p{i}"], -25, ""))
+            if "note" in c: ev.append(("click-soft", c["note"], -26, ""))
+            if "source" in c: ev.append(("click-soft", c["source"], -27, ""))
+        elif ty == "steps":
+            if "title" in c: ev.append(("click-soft", c["title"], -23, ""))
+            for i in range(1, 5):
+                if f"i{i}" in c: ev.append(("pop", c[f"i{i}"], -21, ""))
+        elif ty == "timeline":
+            if "title" in c: ev.append(("click-soft", c["title"], -24, ""))
+            for i in range(1, 5):
+                if f"e{i}" in c: ev.append(("click-soft", c[f"e{i}"], -24, ""))
+        elif ty == "compare":
+            if "title" in c: ev.append(("click-soft", c["title"], -24, ""))
+            if "head_a" in c: ev.append(("click-soft", c["head_a"], -23, ""))
+            for i in range(1, 4):
+                if f"a{i}" in c: ev.append(("click-soft", c[f"a{i}"], -25, ""))
+            if "verdict" in c: ev.append(("pop", c["verdict"], -19, ""))
+        elif ty == "qa":
+            if "q" in c: ev.append(("sparkle", c["q"], -20, ""))
+            if "hero" in c: ev.append(("impact-bass-2", c["hero"], -18, ""))
+            for i in range(1, 9):
+                if f"p{i}" in c: ev.append(("click-soft", c[f"p{i}"], -25, ""))
+            if "note" in c: ev.append(("click-soft", c["note"], -26, ""))
         elif ty == "cta":
             for k in ("line1", "line2"):
                 if k in c: ev.append(("click-soft", c[k], -23, ""))
@@ -116,6 +148,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("project")
     ap.add_argument("--recitation", help="override recitation file (wav/mp3)")
+    ap.add_argument("--allow-missing-recitation", action="store_true",
+                    help="keep mixing (bed + sfx) when the recitation cannot be fetched; the result is not publishable")
     ap.add_argument("--stem", action="append", default=[], help="extra stem: path:at[:gain_db]")
     ap.add_argument("--no-bed", action="store_true")
     ap.add_argument("--dry-run", action="store_true", help="print the event list only")
@@ -149,19 +183,28 @@ def main():
             if not rec.get("ref"):
                 raise SystemExit("recitation needs 'file' or 'ref' (surah:ayah)")
             rpath = os.path.join(adir, "recite.wav")
-            run([sys.executable, os.path.join(HERE, "recite.py"), rec["ref"], "--edition", rec.get("edition", "ar.mahermuaiqly"), "--out", rpath])
-        at = rec.get("at")
-        if at is None:  # default: first word cue of the first verse scene
-            for sc in res["scenes"]:
-                if sc["type"] == "verse" and sc["cues"].get("words"):
-                    at = sc["cues"]["words"][0]; break
-            at = 0.5 if at is None else at
-        rd = dur(rpath)
-        i = add_input(rpath)
-        chains.append(f"[{i}:a]aformat=sample_rates=48000:channel_layouts=stereo,volume={rec.get('gain_db',0)}dB,"
-                      f"afade=t=in:d=0.08,afade=t=out:st={max(0, rd-0.35):.3f}:d=0.35,adelay={ms(at)}|{ms(at)}[rec]")
-        rec_label = "rec"
-        print(f"recitation: {os.path.basename(rpath)} ({rd:.2f}s) at {at}s")
+            try:
+                run([sys.executable, os.path.join(HERE, "recite.py"), rec["ref"],
+                     "--edition", rec.get("edition", "ar.mahermuaiqly"), "--out", rpath])
+            except SystemExit:
+                if a.allow_missing_recitation:
+                    print("⚠ recitation unavailable — mixing without it (the reel is NOT publishable yet)")
+                    rec, rpath = None, None
+                else:
+                    raise
+        if rpath and rec:
+            at = rec.get("at")
+            if at is None:  # default: first word cue of the first verse scene
+                for sc in res["scenes"]:
+                    if sc["type"] == "verse" and sc["cues"].get("words"):
+                        at = sc["cues"]["words"][0]; break
+                at = 0.5 if at is None else at
+            rd = dur(rpath)
+            i = add_input(rpath)
+            chains.append(f"[{i}:a]aformat=sample_rates=48000:channel_layouts=stereo,volume={rec.get('gain_db',0)}dB,"
+                          f"afade=t=in:d=0.08,afade=t=out:st={max(0, rd-0.35):.3f}:d=0.35,adelay={ms(at)}|{ms(at)}[rec]")
+            rec_label = "rec"
+            print(f"recitation: {os.path.basename(rpath)} ({rd:.2f}s) at {at}s")
 
     # --- voice stems (narration) — only when explicitly requested
     stem_labels = []

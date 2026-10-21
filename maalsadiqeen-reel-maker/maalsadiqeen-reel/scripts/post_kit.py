@@ -102,6 +102,39 @@ def from_spec(s: dict) -> dict:
             body.append(" ".join(clean(sc.get(k, "")) for k in ("wrong_label", "wrong", "right_label", "right") if sc.get(k)))
         elif t == "list":
             body.append(clean(sc.get("title", "")) + ": " + " · ".join(clean(i) for i in sc.get("items") or []))
+        elif t == "paragraph":
+            txt = sc.get("text")
+            body.append(clean(" ".join(txt) if isinstance(txt, list) else str(txt or "")))
+            if sc.get("source"):
+                sources.append(clean(sc["source"]).lstrip("— ").strip())
+        elif t == "definition":
+            txt = sc.get("body")
+            body.append(clean(sc.get("term", "")) + ": " + clean(" ".join(txt) if isinstance(txt, list) else str(txt or "")))
+            if sc.get("source"):
+                sources.append(clean(sc["source"]).lstrip("— ").strip())
+        elif t == "qa":
+            txt = sc.get("answer")
+            body.append(clean(sc.get("question", "")) + " " + clean(" ".join(txt) if isinstance(txt, list) else str(txt or "")))
+            if sc.get("source"):
+                sources.append(clean(sc["source"]).lstrip("— ").strip())
+        elif t == "steps":
+            items = []
+            for x in sc.get("items") or []:
+                items.append(clean(" ".join(str(x.get(k, "")) for k in ("head", "text") if x.get(k))) if isinstance(x, dict) else clean(x))
+            body.append(clean(sc.get("title", "")) + ": " + " · ".join(i for i in items if i))
+        elif t == "timeline":
+            evs = []
+            for x in sc.get("events") or []:
+                evs.append(clean(" ".join(str(x.get(k, "")) for k in ("when", "text") if x.get(k))) if isinstance(x, dict) else clean(x))
+            body.append(clean(sc.get("title", "")) + ": " + " · ".join(e for e in evs if e))
+        elif t == "compare":
+            bits = []
+            for key in ("col_a", "col_b"):
+                c = sc.get(key) or {}
+                bits.append(clean(c.get("head", "")) + ": " + " · ".join(clean(x) for x in c.get("points") or []))
+            body.append(" | ".join(b for b in bits if b.strip(" :")))
+            if sc.get("verdict"):
+                body.append(clean(sc["verdict"]))
         elif t == "proof":
             if sc.get("seal"):
                 verdict = " ".join(sc["seal"])

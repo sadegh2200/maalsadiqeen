@@ -7,11 +7,14 @@ build_reel.py — compile a reel spec (JSON) into a HyperFrames project.
 Writes:  <out>/index.html, <out>/hyperframes.json, <out>/assets/{gsap.min.js,fonts,img}
          <out>/spec.resolved.json  (all cues resolved to absolute seconds — used by mix.py)
 
-The spec is a list of SCENES built from a small library of proven BLOCKS
-(hook, verse, contrast, answer, proof, cta, quote, list, title). Every cue that
-is not given explicitly is derived from reading-speed rules, so a "silent"
-(narration-free) reel needs almost no manual timing. For narrated reels, pass
-the cues measured with cues.py.
+The spec is a list of SCENES built from a small library of proven BLOCKS. Two
+families: the v2 short-form blocks (hook, verse, contrast, answer, proof, cta,
+quote, list, title) for one-line-per-scene reels, and the v3 long-text blocks
+(paragraph, definition, steps, timeline, compare, qa) that carry a passage of
+prose on screen without turning into a wall of text. Every cue that is not given
+explicitly is derived from reading-speed rules, so a "silent" (narration-free)
+reel needs almost no manual timing. For narrated reels, pass the cues measured
+with cues.py.
 
 Spec reference: ../references/blocks.md
 """
@@ -123,6 +126,8 @@ def ar_digits(n) -> str:
 READ_WORD = 0.26   # s per word (educated reader, فصيح with tashkeel)
 READ_MIN = 1.15    # minimum dwell per line
 GAP = 0.18         # gap between consecutive reveals
+READ_PROSE = 0.30  # s per word for running prose (paragraph · qa · definition) — slower than a slogan
+PROSE_MIN = 1.80   # minimum dwell per prose sentence
 
 
 def words(s):
@@ -131,6 +136,65 @@ def words(s):
 
 def dwell(s):
     return max(READ_MIN, READ_WORD * len(words(s)) + 0.55)
+
+
+# ----------------------------------------------------------------------------- theme
+BRAND_PATH = os.path.join(SKILL_ROOT, "config", "brand.json")
+
+
+def load_brand(skill_root: str | None = None) -> dict:
+    path = os.path.join(skill_root or SKILL_ROOT, "config", "brand.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except OSError:
+        return {}
+
+
+def theme_of(spec: dict, brand: dict, override: str | None = None) -> tuple[str, dict]:
+    """(name, tokens). `--theme` beats `spec.theme`, which beats the brand default."""
+    themes = brand.get("themes") or {}
+    name = override or spec.get("theme") or (brand.get("defaults") or {}).get("theme") or "main"
+    if not themes:
+        return "main", {}
+    if name not in themes:
+        raise SystemExit(f"unknown theme «{name}» — available: {', '.join(themes)}")
+    return name, dict((themes[name] or {}).get("tokens") or {})
+
+
+# The renderer is one CSS file with a light palette. A theme is a token set laid over it: the cascade
+# does the rest, so a block never has to know which theme is running.
+_THEME_RULES = """
+      :root {{ {vars} }}
+      html, body {{ background: var(--body-bg); }}
+      #paper {{ background: radial-gradient(120% 85% at 50% 38%, var(--paper-hi) 0%, var(--paper-mid) 52%, var(--paper-lo) 100%); }}
+      #light {{ opacity: var(--light-opacity); }}
+      #grain {{ opacity: var(--grain-opacity); mix-blend-mode: var(--grain-blend); }}
+      #vignette {{ background: radial-gradient(95% 75% at 50% 50%, rgba(0,0,0,0) 58%, var(--vignette) 100%); }}
+      .glow {{ background: radial-gradient(closest-side, var(--glow), rgba(0,0,0,0) 70%); }}
+      .card {{ background: var(--card-bg); border-color: var(--card-line); }}
+      .blk-proof .seal {{ background: var(--seal-bg); }}
+      .blk-proof .seal-flash {{ background: radial-gradient(closest-side, var(--seal-flash), rgba(0,0,0,0) 70%); }}
+      .blk-cta .plane path, .blk-cta .mark path {{ stroke: var(--green); }}
+      .brand img {{ filter: {logo}; }}
+      #sprig path[stroke] {{ stroke: var(--sprig-line); }}
+      #sprig path[fill]:not([fill="none"]) {{ fill: var(--sprig-leaf); }}
+      .blk-steps .num {{ background: var(--chip-bg); }}
+      .blk-cta .share {{ color: var(--ink); }}
+      .blk-cta .invite.none {{ justify-content: center; }}
+"""
+
+_THEME_VARS = ["paper", "paper2", "green", "green2", "gold", "gold2", "ink", "ink2", "line", "body_bg",
+               "paper_hi", "paper_mid", "paper_lo", "light_opacity", "grain_opacity", "grain_blend",
+               "vignette", "glow", "card_bg", "card_line", "seal_bg", "seal_flash", "chip_bg",
+               "sprig_line", "sprig_leaf"]
+
+
+def theme_css(tokens: dict) -> str:
+    if not tokens:
+        return ""
+    vars_ = " ".join(f"--{k.replace('_', '-')}: {tokens[k]};" for k in _THEME_VARS if k in tokens)
+    return _THEME_RULES.format(vars=vars_, logo=tokens.get("logo_filter", "none"))
 
 
 # ----------------------------------------------------------------------------- CSS
@@ -225,6 +289,10 @@ BASE_CSS = r"""
       .blk-cta .c2 { line-height: 1.6; margin-top: 26px; color: var(--ink); }
       .blk-cta .share { display: flex; align-items: center; justify-content: center; gap: 26px; margin-top: 54px; }
       .blk-cta .share .txt { line-height: 1.5; color: var(--ink); } .blk-cta .plane { width: 80px; height: 80px; flex: none; }
+      .blk-cta .share .bookmark { width: 64px; height: 64px; flex: none; }
+      .blk-cta .share.none { gap: 0; }
+      .blk-cta .no-invite .final { margin-top: 96px; }
+      .blk-cta .no-invite .c2 { margin-top: 34px; }
       .blk-cta .final { line-height: 1.65; margin-top: 46px; }
       .blk-cta .final-line { height: 4px; width: 300px; margin: 0 auto; background: var(--gold); border-radius: 3px; transform-origin: center; }
       .brand { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 60px; }
@@ -236,6 +304,65 @@ BASE_CSS = r"""
       .blk-list .num { font-family: "Noto Kufi Arabic", sans-serif; font-weight: 700; color: var(--gold); font-size: 0.75em; }
       .blk-title .kicker { color: var(--gold); line-height: 1.7; margin-bottom: 18px; }
       .blk-title .sub { color: var(--ink-2); line-height: 1.7; margin-top: 26px; }
+
+      /* ---- long-text blocks (v3 phase 2): paragraph · definition · steps · timeline · compare · qa
+         Reading rules: body copy is right-aligned like a book page, never narrower than 34 px,
+         one gold hairline on the right edge of running prose, no boxes around sacred text. */
+      .kick { color: var(--gold); line-height: 1.7; letter-spacing: 0.02em; }
+      .src { color: var(--ink-2); line-height: 1.8; }
+      .pline { display: block; }
+      .prose { text-align: right; }
+      .prose .pline, .blk-qa .a .pline { border: 0; }
+      /* paragraph */
+      .blk-paragraph .kicker { margin-bottom: 30px; }
+      .blk-paragraph .prose { border-right: 2px solid rgba(149,114,56,0.38); padding-right: 32px; }
+      .blk-paragraph .src { margin-top: 34px; }
+      /* definition */
+      .blk-definition .kicker { margin-bottom: 26px; }
+      .blk-definition .term { color: var(--green); line-height: 1.4; padding: 0 12px; display: inline-block; }
+      .blk-definition .term-line { height: 5px; width: 58%; margin: 14px auto 0; border-radius: 3px; transform-origin: right center;
+        background: linear-gradient(90deg, var(--gold-2), var(--gold), var(--gold-2)); }
+      .blk-definition .body { margin-top: 48px; border-right: 2px solid rgba(149,114,56,0.38); padding-right: 32px; line-height: 1.85; }
+      .blk-definition .note { margin-top: 22px; color: var(--ink-2); line-height: 1.7; }
+      .blk-definition .src { margin-top: 18px; }
+      /* steps */
+      .blk-steps .steps { position: relative; width: 100%; margin-top: 40px; text-align: right; }
+      .blk-steps .steps::before { content: ""; position: absolute; right: 33px; top: 40px; bottom: 40px; width: 1.5px; background: rgba(149,114,56,0.42); }
+      .blk-steps .step { position: relative; display: flex; align-items: flex-start; gap: 24px; margin-top: 30px; }
+      .blk-steps .step:first-child { margin-top: 0; }
+      .blk-steps .num { position: relative; z-index: 1; flex: none; width: 68px; height: 68px; border-radius: 50%;
+        border: 1.8px solid var(--gold); background: #f1ece1; color: var(--gold);
+        font-family: "Noto Kufi Arabic", sans-serif; font-weight: 700; font-size: 32px;
+        display: flex; align-items: center; justify-content: center; }
+      .blk-steps .sbody { flex: 1; padding-top: 6px; }
+      .blk-steps .shead { color: var(--green); line-height: 1.5; }
+      .blk-steps .stext { color: var(--ink); line-height: 1.75; margin-top: 4px; }
+      .blk-steps .src { margin-top: 34px; }
+      /* timeline */
+      .blk-timeline .items { position: relative; width: 100%; margin-top: 40px; text-align: right; }
+      .blk-timeline .items::before { content: ""; position: absolute; right: 6px; top: 24px; bottom: 24px; width: 1.5px; background: rgba(149,114,56,0.42); }
+      .blk-timeline .ev { position: relative; display: flex; align-items: baseline; gap: 22px; padding-right: 46px; margin-top: 34px; }
+      .blk-timeline .ev:first-child { margin-top: 0; }
+      .blk-timeline .ev::before { content: ""; position: absolute; right: 0; top: 0.55em; width: 13px; height: 13px; background: var(--gold); transform: rotate(45deg); }
+      .blk-timeline .when { flex: none; color: var(--gold); line-height: 1.6; }
+      .blk-timeline .etext { flex: 1; color: var(--ink); line-height: 1.75; }
+      .blk-timeline .src { margin-top: 34px; }
+      /* compare */
+      .blk-compare .grid { display: flex; align-items: stretch; width: 100%; margin-top: 40px; }
+      .blk-compare .col { flex: 1; padding: 0 26px; text-align: right; }
+      .blk-compare .col + .col { border-right: 1.5px solid rgba(149,114,56,0.36); }
+      .blk-compare .chead { color: var(--green); line-height: 1.5; }
+      .blk-compare .pt { position: relative; margin-top: 20px; padding-right: 28px; color: var(--ink); line-height: 1.7; }
+      .blk-compare .pt::before { content: ""; position: absolute; right: 0; top: 0.62em; width: 9px; height: 9px; background: var(--gold); transform: rotate(45deg); }
+      .blk-compare .verdict { width: 100%; margin-top: 44px; color: var(--ink); line-height: 1.7; }
+      .blk-compare .src { margin-top: 20px; }
+      /* qa */
+      .blk-qa .qlabel, .blk-qa .alabel { color: var(--gold); line-height: 1.7; }
+      .blk-qa .q { margin-top: 14px; color: var(--green); line-height: 1.55; text-align: right; }
+      .blk-qa .rule { margin-top: 34px; margin-bottom: 34px; }
+      .blk-qa .a { margin-top: 16px; color: var(--ink); line-height: 1.85; text-align: right; }
+      .blk-qa .note { margin-top: 22px; color: var(--ink-2); line-height: 1.7; text-align: right; }
+      .blk-qa .src { margin-top: 20px; }
 
       #wm { position: absolute; left: 0; right: 0; top: 1372px; z-index: 2; display: flex; align-items: center; justify-content: center; gap: 12px; opacity: 0; }
       #wm img { width: 54px; height: auto; }
@@ -291,6 +418,23 @@ JS_HELPERS = r"""
 """
 
 PLANE_SVG = """<svg class="plane" viewBox="0 0 64 64" aria-hidden="true"><path d="M58 6 L6 28 L26 36 L34 58 L58 6 Z" fill="none" stroke="#1f4a35" stroke-width="3.2" stroke-linejoin="round"/><path d="M26 36 L58 6" fill="none" stroke="#1f4a35" stroke-width="3.2" stroke-linecap="round"/></svg>"""
+BOOKMARK_SVG = """<svg class="bookmark" viewBox="0 0 64 64" aria-hidden="true"><path d="M18 8 h28 v48 l-14 -11 l-14 11 Z" fill="none" stroke="#1f4a35" stroke-width="3.2" stroke-linejoin="round"/><path d="M26 24 h12" stroke="#1f4a35" stroke-width="3" stroke-linecap="round"/></svg>"""
+NO_ICON = "none"
+
+
+def invite_icon(sc: dict, brand_cta: dict, text: str) -> str:
+    """send · save · none — explicit, then the brand's map, then the verb itself."""
+    want = (sc.get("icon") or "").strip()
+    if want in ("send", "save", "none"):
+        return want
+    mapped = (brand_cta.get("icons") or {}).get(text)
+    if mapped in ("send", "save", "none"):
+        return mapped
+    if text.startswith("احفظ") or text.startswith("احْفَظ"):
+        return "save"
+    if text.startswith("أرسل") or text.startswith("أَرْسِل") or text.startswith("ابعث"):
+        return "send"
+    return NO_ICON
 CHECK_SVG = """<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 25 L19 36 L40 13" fill="none" stroke="#b48c4a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>"""
 
 
@@ -299,6 +443,7 @@ class Ctx:
     def __init__(self):
         self.html, self.js, self.warn = [], [], []
         self.cues = {}            # scene id -> {name: abs seconds}
+        self.brand = {}           # config/brand.json, for tables a block needs (CTA icons)
         self.cuts = []            # scene start times (for SFX)
 
 
@@ -545,12 +690,17 @@ def blk_cta(sc, ctx):
     _check_room(sc, cues, ctx)
     brand = sc.get("brand") or {}
     handle = brand.get("handle", "@maalsadiqeen")
-    h = [f'<section id="{sid}" class="clip blk-cta" data-track-index="{sc.get("track",1)}" data-start="{sc["start"]}" data-duration="{round(sc["end"]-sc["start"],3)}"><div class="stage">']
+    invite = str(sc.get("share") or "").strip()
+    icon = invite_icon(sc, ctx.brand.get("cta") or {}, invite) if invite else NO_ICON
+    stage_cls = "stage" + ("" if invite else " no-invite")
+    h = [f'<section id="{sid}" class="clip blk-cta" data-track-index="{sc.get("track",1)}" data-start="{sc["start"]}" data-duration="{round(sc["end"]-sc["start"],3)}"><div class="{stage_cls}">']
     if sc.get("line1"):
         h.append(f'<div id="{sid}-c1" class="block c1 kufi" style="font-size:{fit(sc["line1"], "kufi", 76, 48)}px">{em(sc["line1"])}</div>')
         h.append(f'<svg class="path" id="{sid}-path" viewBox="0 0 420 24" aria-hidden="true"><path id="{sid}-pathline" d="M414 12 C 330 2, 250 22, 170 12 S 40 2, 6 12" /></svg>')
     if sc.get("line2"): h.append(f'<div id="{sid}-c2" class="block c2 amiri" style="font-size:{fit(sc["line2"], "amiri", 68, 44)}px">{em(sc["line2"])}</div>')
-    if sc.get("share"): h.append(f'<div class="share" id="{sid}-share">{PLANE_SVG}<div class="txt kufi-r" style="font-size:{fit(sc["share"], "kufi-r", 60, 40, width=660)}px">{em(sc["share"])}</div></div>')
+    if invite:
+        mark = PLANE_SVG if icon == "send" else (BOOKMARK_SVG if icon == "save" else "")
+        h.append(f'<div class="share {icon}" id="{sid}-share">{mark}<div class="txt kufi-r" style="font-size:{fit(invite, "kufi-r", 60, 40, width=660)}px">{em(invite)}</div></div>')
     if sc.get("final"):
         h.append(f'<div id="{sid}-final" class="block final {sc.get("final_font","quran")}" style="font-size:{fit(sc["final"], sc.get("final_font","quran"), 104, 64)}px">{em(sc["final"])}</div><div class="final-line" id="{sid}-fline"></div>')
     h.append(f'<div class="brand" id="{sid}-brand"><img src="assets/img/logo.png" alt="" /><div class="h">{html.escape(handle)}</div></div>')
@@ -560,11 +710,15 @@ def blk_cta(sc, ctx):
     if sc.get("line1"):
         js.append(f'enter("#{sid}-c1", {cues["line1"]}, {{ dur: 0.7, y: 26 }}); tl.set("#{sid}-path", {{ opacity: 1 }}, {cues["line1"]}); drawPath("{sid}-pathline", {cues["line1"]+0.2:.2f}, 1.1);')
     if sc.get("line2"): js.append(f'enter("#{sid}-c2", {cues["line2"]}, {{ dur: 0.75, y: 26 }});')
-    if sc.get("share"):
-        js += [f'tl.fromTo("#{sid}-share", {{ opacity: 0, y: 30 }}, {{ opacity: 1, y: 0, duration: 0.6 }}, {cues["share"]});',
-               f'tl.fromTo("#{sid}-share .plane", {{ x: -140, y: 90, rotation: -18, opacity: 0 }}, {{ x: 0, y: 0, rotation: 0, opacity: 1, duration: 0.8, ease: "power3.out" }}, {cues["share"]});',
-               f'tl.to("#{sid}-share .plane", {{ y: -6, duration: 1.4, ease: "sine.inOut", yoyo: true, repeat: 2 }}, {cues["share"]+0.8:.2f});',
-               f'tl.to(["#{sid}-c1", "#{sid}-path", "#{sid}-c2"], {{ y: -26, opacity: 0.55, duration: 0.7, ease: "power2.out" }}, {cues["share"]});']
+    if invite:
+        js.append(f'tl.fromTo("#{sid}-share", {{ opacity: 0, y: 30 }}, {{ opacity: 1, y: 0, duration: 0.6 }}, {cues["share"]});')
+        if icon == "send":
+            js += [f'tl.fromTo("#{sid}-share .plane", {{ x: -140, y: 90, rotation: -18, opacity: 0 }}, {{ x: 0, y: 0, rotation: 0, opacity: 1, duration: 0.8, ease: "power3.out" }}, {cues["share"]});',
+                   f'tl.to("#{sid}-share .plane", {{ y: -6, duration: 1.4, ease: "sine.inOut", yoyo: true, repeat: 2 }}, {cues["share"]+0.8:.2f});']
+        elif icon == "save":
+            js += [f'tl.fromTo("#{sid}-share .bookmark", {{ y: -26, opacity: 0, scale: 0.8 }}, {{ y: 0, opacity: 1, scale: 1, duration: 0.7, ease: "back.out(1.6)" }}, {cues["share"]});',
+                   f'tl.to("#{sid}-share .bookmark", {{ y: 4, duration: 1.6, ease: "sine.inOut", yoyo: true, repeat: 2 }}, {cues["share"]+0.7:.2f});']
+        js.append(f'tl.to(["#{sid}-c1", "#{sid}-path", "#{sid}-c2"], {{ y: -26, opacity: 0.55, duration: 0.7, ease: "power2.out" }}, {cues["share"]});')
     if sc.get("final"):
         js += [f'enter("#{sid}-final", {cues["final"]}, {{ dur: 0.9, y: 34, blur: 14, scale: 0.96 }});',
                f'tl.fromTo("#{sid}-fline", {{ opacity: 1, scaleX: 0 }}, {{ scaleX: 1, duration: 0.6, ease: "power2.out" }}, {cues["final"]+0.35:.2f});']
@@ -693,13 +847,396 @@ def blk_title(sc, ctx):
     ctx.js.append("\n".join(js))
 
 
+def _seq_texts(scene, pairs, start_pad=0.3, pace=READ_PROSE, floor=PROSE_MIN):
+    """Like _seq, but for text that is not a scene field (split sentences, list items, events).
+    pairs = [(cue_name, text_or_list), …] — the pace is slower because running prose is read, not glanced."""
+    t = scene["start"] + start_pad
+    out = {}
+    for k, txt in pairs:
+        if not txt:
+            continue
+        out[k] = round(t, 2)
+        lines = txt if isinstance(txt, list) else [txt]
+        t += max(floor, pace * sum(len(words(x)) for x in lines) + 0.55) + GAP
+    return out
+
+
+def split_prose(text, max_words=18):
+    """Authored prose → readable chunks, one chunk per reveal.
+
+    A list is taken as authored (one entry per screen line). A string is split at sentence ends
+    (. ؟ !), and a sentence longer than `max_words` is split at its last «،» / «؛» before the limit.
+    A chunk carrying <em> is never cut (the hinge word stays whole)."""
+    if isinstance(text, list):
+        return [str(x).strip() for x in text if str(x).strip()]
+    t = str(text or "").strip()
+    if not t:
+        return []
+    out = []
+    for p in re.split(r"(?<=[.؟!])\s+", t):
+        p = p.strip()
+        if not p:
+            continue
+        w = words(p)
+        if len(w) <= max_words or "<em>" in p:
+            out.append(p)
+            continue
+        cut = None
+        for i in range(max_words, 5, -1):
+            if i < len(w) and w[i - 1].endswith(("،", "؛", ":")):
+                cut = i
+                break
+        cut = cut or max_words
+        out.append(" ".join(w[:cut]))
+        rest = " ".join(w[cut:])
+        if rest:
+            out.extend(split_prose(rest, max_words))
+    return out
+
+
+def _item(x):
+    """steps / timeline items: a string, or {head|when, text}."""
+    if isinstance(x, dict):
+        return {"head": str(x.get("head") or x.get("when") or "").strip(),
+                "text": str(x.get("text") or "").strip()}
+    return {"head": "", "text": str(x or "").strip()}
+
+
+def _src_line(sid, sc, size=(30, 24)):
+    if not sc.get("source"):
+        return "", ""
+    return (f'<div id="{sid}-src" class="block src naskh" style="font-size:{fit(sc["source"], "naskh", size[0], size[1])}px">'
+            f'{em(sc["source"])}</div>', "source")
+
+
+def _prose_html(sid, chunks, size, cls="prose naskh"):
+    return (f'<div class="block {cls}" style="font-size:{size}px">'
+            + "".join(f'<span class="pline" id="{sid}-p{i+1}">{em(c)}</span>' for i, c in enumerate(chunks))
+            + "</div>")
+
+
+def _enter_prose(sid, cues, n, dur=0.7, y=24):
+    return [f'enter("#{sid}-p{i+1}", {cues[f"p{i+1}"]}, {{ dur: {dur}, y: {y}, blur: 8 }});' for i in range(n)]
+
+
+def blk_paragraph(sc, ctx):
+    """A prose passage (up to ~60 words) revealed sentence by sentence — the شرح layer on screen.
+
+    `kicker` (optional label) · `text` (string or list) · `source` (optional). `font` (naskh default),
+    `size`, `max_lines` (8), `max_words` (18 words per chunk)."""
+    sid = sc["id"]
+    chunks = split_prose(sc.get("text"), int(sc.get("max_words") or 18))
+    if not chunks:
+        raise SystemExit(f"[{sid}] paragraph needs text")
+    if len(chunks) > 7:
+        ctx.warn.append(f"[{sid}] {len(chunks)} sentences in one paragraph — split the scene or cut to five")
+    pairs = ([("kicker", sc.get("kicker"))] if sc.get("kicker") else []) \
+        + [(f"p{i+1}", c) for i, c in enumerate(chunks)] \
+        + ([("source", sc.get("source"))] if sc.get("source") else [])
+    cues = _cues(sc, _seq_texts(sc, pairs))
+    ctx.cues[sid] = cues
+    _check_room(sc, cues, ctx)
+    font = sc.get("font", "naskh")
+    size = sc.get("size") or fit_wrapped([words(c) for c in chunks], font, 56, 36, width=760,
+                                         max_lines=int(sc.get("max_lines") or 8), max_height=1020, line_height=1.85)[0]
+    h = [f'<section id="{sid}" class="clip blk-paragraph" data-track-index="{sc.get("track",1)}" data-start="{sc["start"]}" data-duration="{round(sc["end"]-sc["start"],3)}"><div class="stage" id="{sid}-stage">']
+    if sc.get("kicker"):
+        h.append(f'<div id="{sid}-k" class="block kick kicker kufi-r" style="font-size:{fit(sc["kicker"], "kufi-r", 38, 26)}px">{em(sc["kicker"])}</div>')
+    h.append(_prose_html(sid, chunks, size, f"prose {font}"))
+    src, _ = _src_line(sid, sc, (32, 26))
+    if src:
+        h.append(src)
+    h.append("</div></section>")
+    ctx.html.append("\n".join(h))
+    js = [f"// ---- {sid} paragraph", f'sceneIn("#{sid} .stage", {sc["start"]});']
+    if sc.get("kicker"):
+        js.append(f'enter("#{sid}-k", {cues["kicker"]}, {{ dur: 0.6, y: 16, blur: 6 }});')
+    js += _enter_prose(sid, cues, len(chunks), dur=0.75, y=26)
+    if sc.get("source"):
+        js.append(f'enter("#{sid}-src", {cues["source"]}, {{ dur: 0.55, y: 12, blur: 4 }});')
+    js.append(f'tl.fromTo("#{sid}-stage", {{ scale: 1 }}, {{ scale: 1.015, duration: {sc["end"]-sc["start"]:.1f}, ease: "none", transformOrigin: "50% 45%" }}, {sc["start"]});')
+    js.append(f'exit("#{sid} .stage > *", {sc["end"]-0.45:.2f});')
+    ctx.js.append("\n".join(js))
+
+
+def blk_definition(sc, ctx):
+    """حدّ المصطلح: label · term · body (prose) · note · source.
+
+    Use it when the whole reel turns on what a word means. The term is the only Kufi display line;
+    the body is Naskh prose, right-aligned, so it reads like a margin note, not an ad."""
+    sid = sc["id"]
+    term = sc.get("term") or ""
+    if not term:
+        raise SystemExit(f"[{sid}] definition needs term")
+    body = split_prose(sc.get("body"), int(sc.get("max_words") or 20))
+    if not body:
+        raise SystemExit(f"[{sid}] definition needs body")
+    label = sc.get("label", "التَّعْرِيف")
+    pairs = ([("label", label)] if label else []) + [("term", term)] \
+        + [(f"p{i+1}", c) for i, c in enumerate(body)] \
+        + ([("note", sc.get("note"))] if sc.get("note") else []) \
+        + ([("source", sc.get("source"))] if sc.get("source") else [])
+    cues = _cues(sc, _seq_texts(sc, pairs))
+    ctx.cues[sid] = cues
+    _check_room(sc, cues, ctx)
+    f_term = fit(term, "kufi", 104, 56)
+    f_body = fit_wrapped([words(c) for c in body], "naskh", 48, 32, width=760, max_lines=6, max_height=700, line_height=1.85)[0]
+    h = [f'<section id="{sid}" class="clip blk-definition" data-track-index="{sc.get("track",1)}" data-start="{sc["start"]}" data-duration="{round(sc["end"]-sc["start"],3)}"><div class="stage" id="{sid}-stage">']
+    if label:
+        h.append(f'<div id="{sid}-l" class="block kick kicker kufi-r" style="font-size:{fit(label, "kufi-r", 38, 26)}px">{em(label)}</div>')
+    h.append(f'<div class="block term-wrap"><div id="{sid}-t" class="term kufi" style="font-size:{f_term}px">{em(term)}</div><div id="{sid}-tl" class="term-line"></div></div>')
+    h.append(_prose_html(sid, body, f_body, "body prose naskh"))
+    if sc.get("note"):
+        h.append(f'<div id="{sid}-n" class="block note naskh" style="font-size:{fit(sc["note"], "naskh", 36, 28)}px">{em(sc["note"])}</div>')
+    src, _ = _src_line(sid, sc, (30, 24))
+    if src:
+        h.append(src)
+    h.append("</div></section>")
+    ctx.html.append("\n".join(h))
+    js = [f"// ---- {sid} definition", f'sceneIn("#{sid} .stage", {sc["start"]});']
+    if label:
+        js.append(f'enter("#{sid}-l", {cues["label"]}, {{ dur: 0.6, y: 14, blur: 5 }});')
+    js.append(f'enter("#{sid}-t", {cues["term"]}, {{ dur: 0.85, y: 34, blur: 14, scale: 0.95 }});')
+    js.append(f'tl.fromTo("#{sid}-tl", {{ scaleX: 0 }}, {{ scaleX: 1, duration: 0.6, ease: "power2.out" }}, {cues["term"]+0.45:.2f});')
+    js += _enter_prose(sid, cues, len(body), dur=0.75, y=24)
+    if sc.get("note"):
+        js.append(f'enter("#{sid}-n", {cues["note"]}, {{ dur: 0.55, y: 12, blur: 4 }});')
+    if sc.get("source"):
+        js.append(f'enter("#{sid}-src", {cues["source"]}, {{ dur: 0.55, y: 12, blur: 4 }});')
+    js.append(f'exit("#{sid} .stage > *", {sc["end"]-0.45:.2f});')
+    ctx.js.append("\n".join(js))
+
+
+def blk_steps(sc, ctx):
+    """خطوات مرقّمة: title · items (≤ 4, string or {head, text}) · source.
+
+    For a text that gives a procedure or an ordered set of conditions. The rail and the Arabic-Indic
+    numbers carry the order; the words stay short (a step is an action, not a paragraph)."""
+    sid = sc["id"]
+    items = [_item(x) for x in (sc.get("items") or [])]
+    items = [x for x in items if x["text"] or x["head"]]
+    if not items:
+        raise SystemExit(f"[{sid}] steps needs items")
+    if len(items) > 4:
+        ctx.warn.append(f"[{sid}] {len(items)} steps — four is the ceiling for one screen")
+    pairs = ([("title", sc.get("title"))] if sc.get("title") else []) \
+        + [(f"i{i+1}", x["head"] + " " + x["text"]) for i, x in enumerate(items)] \
+        + ([("source", sc.get("source"))] if sc.get("source") else [])
+    cues = _cues(sc, _seq_texts(sc, pairs, pace=0.32, floor=2.0))
+    ctx.cues[sid] = cues
+    _check_room(sc, cues, ctx)
+    h = [f'<section id="{sid}" class="clip blk-steps" data-track-index="{sc.get("track",1)}" data-start="{sc["start"]}" data-duration="{round(sc["end"]-sc["start"],3)}"><div class="stage" id="{sid}-stage">']
+    if sc.get("title"):
+        h.append(f'<div id="{sid}-t" class="block title kufi" style="font-size:{fit(sc["title"], "kufi", 78, 48)}px">{em(sc["title"])}</div>')
+    h.append(f'<div class="steps" id="{sid}-steps">')
+    for i, x in enumerate(items):
+        fh = fit(x["head"], "kufi", 46, 30, width=640) if x["head"] else 0
+        ft = fit_wrapped([words(x["text"])], "naskh", 40, 28, width=640, max_lines=3, max_height=300, line_height=1.75)[0] if x["text"] else 0
+        body = (f'<div class="shead kufi" style="font-size:{fh}px">{em(x["head"])}</div>' if x["head"] else "") \
+            + (f'<div class="stext naskh" style="font-size:{ft}px">{em(x["text"])}</div>' if x["text"] else "")
+        h.append(f'<div class="step" id="{sid}-i{i+1}"><div class="num">{ar_digits(i+1)}</div><div class="sbody">{body}</div></div>')
+    h.append("</div>")
+    src, _ = _src_line(sid, sc, (30, 24))
+    if src:
+        h.append(src)
+    h.append("</div></section>")
+    ctx.html.append("\n".join(h))
+    js = [f"// ---- {sid} steps", f'sceneIn("#{sid} .stage", {sc["start"]});']
+    if sc.get("title"):
+        js.append(f'enter("#{sid}-t", {cues["title"]}, {{ dur: 0.7, y: 26 }});')
+    for i in range(len(items)):
+        js.append(f'enter("#{sid}-i{i+1}", {cues[f"i{i+1}"]}, {{ dur: 0.7, y: 26, blur: 8 }});')
+        js.append(f'tl.fromTo("#{sid}-i{i+1} .num", {{ scale: 0.6, opacity: 0 }}, {{ scale: 1, opacity: 1, duration: 0.45, ease: "back.out(1.7)" }}, {cues[f"i{i+1}"]+0.05:.2f});')
+    if sc.get("source"):
+        js.append(f'enter("#{sid}-src", {cues["source"]}, {{ dur: 0.55, y: 12, blur: 4 }});')
+    js.append(f'exit("#{sid} .stage > *", {sc["end"]-0.45:.2f});')
+    ctx.js.append("\n".join(js))
+
+
+def blk_timeline(sc, ctx):
+    """خطّ زمني: title · events (≤ 4 × {when, text}) · source.
+
+    For a biography, a chain of transmissions, or the history of a ruling. `when` is a date or an
+    era written for the ear («سَنَة ١٤٨ هـ», «بَعْدَ وَفَاةِ النَّبِيّ»), never an ISO string."""
+    sid = sc["id"]
+    events = [_item(x) for x in (sc.get("events") or [])]
+    events = [x for x in events if x["head"] or x["text"]]
+    if not events:
+        raise SystemExit(f"[{sid}] timeline needs events")
+    if len(events) > 4:
+        ctx.warn.append(f"[{sid}] {len(events)} events — four is the ceiling for one screen")
+    pairs = ([("title", sc.get("title"))] if sc.get("title") else []) \
+        + [(f"e{i+1}", x["head"] + " " + x["text"]) for i, x in enumerate(events)] \
+        + ([("source", sc.get("source"))] if sc.get("source") else [])
+    cues = _cues(sc, _seq_texts(sc, pairs, pace=0.32, floor=2.1))
+    ctx.cues[sid] = cues
+    _check_room(sc, cues, ctx)
+    h = [f'<section id="{sid}" class="clip blk-timeline" data-track-index="{sc.get("track",1)}" data-start="{sc["start"]}" data-duration="{round(sc["end"]-sc["start"],3)}"><div class="stage" id="{sid}-stage">']
+    if sc.get("title"):
+        h.append(f'<div id="{sid}-t" class="block title kufi" style="font-size:{fit(sc["title"], "kufi", 74, 46)}px">{em(sc["title"])}</div>')
+    h.append(f'<div class="items" id="{sid}-items">')
+    for i, x in enumerate(events):
+        fw = fit(x["head"], "kufi", 38, 26, width=210) if x["head"] else 0
+        ft = fit_wrapped([words(x["text"])], "naskh", 40, 28, width=520, max_lines=3, max_height=280, line_height=1.75)[0] if x["text"] else 0
+        h.append(f'<div class="ev" id="{sid}-e{i+1}">'
+                 + (f'<div class="when kufi" style="font-size:{fw}px">{em(x["head"])}</div>' if x["head"] else "")
+                 + (f'<div class="etext naskh" style="font-size:{ft}px">{em(x["text"])}</div>' if x["text"] else "")
+                 + "</div>")
+    h.append("</div>")
+    src, _ = _src_line(sid, sc, (30, 24))
+    if src:
+        h.append(src)
+    h.append("</div></section>")
+    ctx.html.append("\n".join(h))
+    js = [f"// ---- {sid} timeline", f'sceneIn("#{sid} .stage", {sc["start"]});']
+    if sc.get("title"):
+        js.append(f'enter("#{sid}-t", {cues["title"]}, {{ dur: 0.7, y: 24 }});')
+    for i in range(len(events)):
+        js.append(f'tl.fromTo("#{sid}-e{i+1}", {{ opacity: 0, x: 46, filter: "blur(6px)" }}, {{ opacity: 1, x: 0, filter: "blur(0px)", duration: 0.7, ease: "power3.out" }}, {cues[f"e{i+1}"]});')
+    if sc.get("source"):
+        js.append(f'enter("#{sid}-src", {cues["source"]}, {{ dur: 0.55, y: 12, blur: 4 }});')
+    js.append(f'exit("#{sid} .stage > *", {sc["end"]-0.45:.2f});')
+    ctx.js.append("\n".join(js))
+
+
+def blk_compare(sc, ctx):
+    """مقارنة هادئة: title · col_a {head, points[]} · col_b {head, points[]} · verdict · source.
+
+    Two readings side by side without polemics: each column states what its holders say, the verdict
+    says what the text settles. Never used to caricature a group — `col_a` is usually the common
+    assumption, `col_b` the text."""
+    sid = sc["id"]
+    a, b = sc.get("col_a") or {}, sc.get("col_b") or {}
+    if not a.get("head") or not b.get("head"):
+        raise SystemExit(f"[{sid}] compare needs col_a.head and col_b.head")
+    pa = [str(x).strip() for x in (a.get("points") or []) if str(x).strip()][:3]
+    pb = [str(x).strip() for x in (b.get("points") or []) if str(x).strip()][:3]
+    if not pa and not pb:
+        raise SystemExit(f"[{sid}] compare needs at least one point")
+    # a comparison is read in pairs: both heads, then a1 with b1, a2 with b2 … then the verdict
+    d, t = {}, sc["start"] + 0.3
+    if sc.get("title"):
+        d["title"] = round(t, 2); t += max(1.9, 0.32 * len(words(sc["title"])) + 0.55) + GAP
+    d["head_a"] = d["head_b"] = round(t, 2)
+    t += 2.1
+    for i in range(max(len(pa), len(pb))):
+        if i < len(pa):
+            d[f"a{i+1}"] = round(t, 2)
+        if i < len(pb):
+            d[f"b{i+1}"] = round(t, 2)
+        pair = max([x for x in (pa[i] if i < len(pa) else "", pb[i] if i < len(pb) else "") if x] or [""], key=len)
+        t += max(2.0, 0.32 * len(words(pair)) + 1.35) + GAP
+    if sc.get("verdict"):
+        d["verdict"] = round(t, 2); t += max(2.2, 0.30 * len(words(sc["verdict"])) + 0.55) + GAP
+    if sc.get("source"):
+        d["source"] = round(t, 2)
+    cues = _cues(sc, d)
+    ctx.cues[sid] = cues
+    _check_room(sc, cues, ctx)
+    f_pt = min(fit_wrapped([words(p)], "naskh", 36, 26, width=310, max_lines=3,
+                           max_height=210, line_height=1.7)[0] for p in (pa + pb))
+    h = [f'<section id="{sid}" class="clip blk-compare" data-track-index="{sc.get("track",1)}" data-start="{sc["start"]}" data-duration="{round(sc["end"]-sc["start"],3)}"><div class="stage" id="{sid}-stage">']
+    if sc.get("title"):
+        h.append(f'<div id="{sid}-t" class="block title kufi" style="font-size:{fit(sc["title"], "kufi", 70, 44)}px">{em(sc["title"])}</div>')
+    h.append(f'<div class="grid" id="{sid}-grid">')
+    for key, col, pts in (("a", a, pa), ("b", b, pb)):
+        h.append(f'<div class="col" id="{sid}-col{key}">')
+        h.append(f'<div class="chead kufi" id="{sid}-h{key}" style="font-size:{fit(col["head"], "kufi", 46, 30, width=310)}px">{em(col["head"])}</div>')
+        for i, p in enumerate(pts):
+            h.append(f'<div class="pt naskh" id="{sid}-{key}{i+1}" style="font-size:{f_pt}px">{em(p)}</div>')
+        h.append("</div>")
+    h.append("</div>")
+    if sc.get("verdict"):
+        h.append(f'<div id="{sid}-v" class="verdict naskh" style="font-size:{fit_wrapped([words(sc["verdict"])], "naskh", 44, 30, max_lines=3, max_height=300, line_height=1.75)[0]}px">{em(sc["verdict"])}</div>')
+    src, _ = _src_line(sid, sc, (30, 24))
+    if src:
+        h.append(src)
+    h.append("</div></section>")
+    ctx.html.append("\n".join(h))
+    js = [f"// ---- {sid} compare", f'sceneIn("#{sid} .stage", {sc["start"]});']
+    if sc.get("title"):
+        js.append(f'enter("#{sid}-t", {cues["title"]}, {{ dur: 0.7, y: 22 }});')
+    js.append(f'tl.fromTo("#{sid}-ha", {{ opacity: 0, x: 40, filter: "blur(8px)" }}, {{ opacity: 1, x: 0, filter: "blur(0px)", duration: 0.7, ease: "power3.out" }}, {cues["head_a"]});')
+    js.append(f'tl.fromTo("#{sid}-hb", {{ opacity: 0, x: -40, filter: "blur(8px)" }}, {{ opacity: 1, x: 0, filter: "blur(0px)", duration: 0.7, ease: "power3.out" }}, {cues["head_b"]});')
+    for i in range(len(pa)):
+        js.append(f'enter("#{sid}-a{i+1}", {cues[f"a{i+1}"]}, {{ dur: 0.6, y: 16, blur: 6 }});')
+    for i in range(len(pb)):
+        js.append(f'enter("#{sid}-b{i+1}", {cues[f"b{i+1}"]}, {{ dur: 0.6, y: 16, blur: 6 }});')
+    if sc.get("verdict"):
+        js.append(f'enter("#{sid}-v", {cues["verdict"]}, {{ dur: 0.8, y: 26, blur: 10 }});')
+    if sc.get("source"):
+        js.append(f'enter("#{sid}-src", {cues["source"]}, {{ dur: 0.55, y: 12, blur: 4 }});')
+    js.append(f'exit("#{sid} .stage > *", {sc["end"]-0.45:.2f});')
+    ctx.js.append("\n".join(js))
+
+
+def blk_qa(sc, ctx):
+    """سؤال طويل ← جواب مركّب: question · answer (prose, 2–5 sentences) · note · source.
+
+    The `answer` block is one hero line; `qa` is the long form — a follower's question answered in
+    full sentences, still without a narrator. Cue `hero` marks the first answer sentence for mix.py."""
+    sid = sc["id"]
+    q = sc.get("question") or ""
+    if not q:
+        raise SystemExit(f"[{sid}] qa needs question")
+    ans = split_prose(sc.get("answer"), int(sc.get("max_words") or 18))
+    if not ans:
+        raise SystemExit(f"[{sid}] qa needs answer")
+    lq = sc.get("label_q", "السُّؤَال")
+    la = sc.get("label_a", "الجَوَاب")
+    pairs = [("label_q", lq), ("q", q), ("label_a", la)] + [(f"p{i+1}", c) for i, c in enumerate(ans)] \
+        + ([("note", sc.get("note"))] if sc.get("note") else []) \
+        + ([("source", sc.get("source"))] if sc.get("source") else [])
+    cues = _cues(sc, _seq_texts(sc, pairs))
+    cues["hero"] = cues.get("p1", cues.get("label_a"))
+    ctx.cues[sid] = cues
+    _check_room(sc, {k: v for k, v in cues.items() if k != "hero"}, ctx)
+    f_q = fit_wrapped([words(q)], "kufi", 64, 38, max_lines=3, max_height=360, line_height=1.55)[0]
+    f_a = fit_wrapped([words(c) for c in ans], "naskh", 46, 30, width=780, max_lines=8, max_height=760, line_height=1.85)[0]
+    h = [f'<section id="{sid}" class="clip blk-qa" data-track-index="{sc.get("track",1)}" data-start="{sc["start"]}" data-duration="{round(sc["end"]-sc["start"],3)}"><div class="stage" id="{sid}-stage">']
+    if lq:
+        h.append(f'<div id="{sid}-lq" class="block qlabel kufi-r" style="font-size:{fit(lq, "kufi-r", 34, 26)}px">{em(lq)}</div>')
+    h.append(f'<div id="{sid}-q" class="block q kufi" style="font-size:{f_q}px">{em(q)}</div>')
+    h.append(f'<div class="rule" id="{sid}-rule"></div>')
+    if la:
+        h.append(f'<div id="{sid}-la" class="block alabel kufi-r" style="font-size:{fit(la, "kufi-r", 34, 26)}px">{em(la)}</div>')
+    h.append(_prose_html(sid, ans, f_a, "a prose naskh"))
+    if sc.get("note"):
+        h.append(f'<div id="{sid}-n" class="block note naskh" style="font-size:{fit(sc["note"], "naskh", 36, 26)}px">{em(sc["note"])}</div>')
+    src, _ = _src_line(sid, sc, (30, 24))
+    if src:
+        h.append(src)
+    h.append("</div></section>")
+    ctx.html.append("\n".join(h))
+    js = [f"// ---- {sid} qa", f'sceneIn("#{sid} .stage", {sc["start"]});']
+    if lq:
+        js.append(f'enter("#{sid}-lq", {cues["label_q"]}, {{ dur: 0.55, y: 12, blur: 4 }});')
+    js.append(f'enter("#{sid}-q", {cues["q"]}, {{ dur: 0.8, y: 30, blur: 10 }});')
+    js.append(f'tl.fromTo("#{sid}-rule", {{ scaleX: 0 }}, {{ scaleX: 1, duration: 0.55, ease: "power2.out" }}, {cues["q"]+0.8:.2f});')
+    if la:
+        js.append(f'enter("#{sid}-la", {cues["label_a"]}, {{ dur: 0.55, y: 12, blur: 4 }});')
+    js += _enter_prose(sid, cues, len(ans), dur=0.75, y=24)
+    if sc.get("note"):
+        js.append(f'enter("#{sid}-n", {cues["note"]}, {{ dur: 0.55, y: 12, blur: 4 }});')
+    if sc.get("source"):
+        js.append(f'enter("#{sid}-src", {cues["source"]}, {{ dur: 0.55, y: 12, blur: 4 }});')
+    js.append(f'exit("#{sid} .stage > *", {sc["end"]-0.45:.2f});')
+    ctx.js.append("\n".join(js))
+
+
 BLOCKS = {"hook": blk_hook, "verse": blk_verse, "contrast": blk_contrast, "answer": blk_answer,
-          "proof": blk_proof, "cta": blk_cta, "quote": blk_quote, "list": blk_list, "title": blk_title}
+          "proof": blk_proof, "cta": blk_cta, "quote": blk_quote, "list": blk_list, "title": blk_title,
+          "paragraph": blk_paragraph, "definition": blk_definition, "steps": blk_steps,
+          "timeline": blk_timeline, "compare": blk_compare, "qa": blk_qa}
+LONG_TEXT_BLOCKS = {"paragraph", "definition", "steps", "timeline", "compare", "qa"}
+
 
 
 # ----------------------------------------------------------------------------- assemble
-def build(spec, out, skill_root):
+def build(spec, out, skill_root, theme: str | None = None):
     scenes = spec["scenes"]
+    brand_cfg = load_brand(skill_root)
+    theme_name, tokens = theme_of(spec, brand_cfg, theme)
     # ids, continuity
     for i, sc in enumerate(scenes):
         sc.setdefault("id", f"s{i+1}")
@@ -708,6 +1245,7 @@ def build(spec, out, skill_root):
     duration = float(spec.get("duration") or scenes[-1]["end"])
     scenes[-1].setdefault("end", duration)
     ctx = Ctx()
+    ctx.brand = brand_cfg
     for i, sc in enumerate(scenes):
         sc.setdefault("track", 1 + (i % 2))
         if i and abs(sc["start"] - scenes[i - 1]["end"]) > 1e-6:
@@ -733,7 +1271,7 @@ def build(spec, out, skill_root):
     <meta name="viewport" content="width=1080, height=1920" />
     <title>{title}</title>
     <script src="assets/gsap.min.js"></script>
-    <style>{BASE_CSS}    </style>
+    <style>{BASE_CSS}{theme_css(tokens)}    </style>
   </head>
   <body>
     <div id="root" data-composition-id="main" data-start="0" data-duration="{duration}" data-width="1080" data-height="1920">
@@ -778,7 +1316,7 @@ def build(spec, out, skill_root):
         d = os.path.join(out, "assets", dst)
         if not os.path.isdir(d):
             shutil.copytree(os.path.join(a, sub), d)
-    resolved = {"id": spec.get("id"), "duration": duration, "cuts": ctx.cuts,
+    resolved = {"id": spec.get("id"), "duration": duration, "cuts": ctx.cuts, "theme": theme_name,
                 "scenes": [{"id": sc["id"], "type": sc["type"], "start": sc["start"], "end": sc["end"], "hero": bool(sc.get("hero")),
                             "cues": ctx.cues.get(sc["id"], {})} for sc in scenes],
                 "audio": spec.get("audio", {})}
@@ -790,11 +1328,14 @@ def build(spec, out, skill_root):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("spec"); ap.add_argument("--out", required=True); ap.add_argument("--skill-root", default=SKILL_ROOT)
+    ap.add_argument("--theme", help="theme name from config/brand.json (main · mourning); beats spec.theme")
     a = ap.parse_args()
     with open(a.spec, encoding="utf-8") as f:
         spec = json.load(f)
+    if a.theme:
+        spec["theme"] = a.theme
     ctx, duration = build(spec, a.out, a.skill_root)
-    print(f"built {a.out}/index.html — {len(spec['scenes'])} scenes, {duration}s")
+    print(f"built {a.out}/index.html — {len(spec['scenes'])} scenes, {duration}s · theme {spec.get('theme') or 'main'}")
     for w in ctx.warn:
         print("WARN", w)
     print("cues ->", os.path.join(a.out, "spec.resolved.json"))

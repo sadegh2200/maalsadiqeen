@@ -1,7 +1,9 @@
 # Reading the sheets («الورق») and choosing the story
 
-The input is one or more branded image posts from the page. They are *not* a script: they are the
-evidence. Read them like an editor, then decide what the 45 seconds are about.
+> **Two doors, one room.** Since v3 the input can also be plain text — a book page, a lecture
+> transcript, a forwarded message, a question. That path has its own contract in
+> `references/text-intake.md`; run `scripts/intake.py` first and come back here at §3
+> (classification) with the extracted quotes. Everything below also applies to a transcribed sheet.
 
 ## 1. Transcribe faithfully
 
